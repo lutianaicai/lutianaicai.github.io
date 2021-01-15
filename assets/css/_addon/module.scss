@@ -17,12 +17,11 @@
 %table-cell {
   padding: 0.4rem 1rem;
   font-size: 95%;
-  white-space: nowrap;
 }
 
 %link-hover {
-  color: #d2603a !important;
-  border-bottom: 1px solid #d2603a;
+  color: #be3f48 !important;
+  border-bottom: 1px solid #be3f48;
   text-decoration: none;
 }
 
@@ -96,6 +95,7 @@
   color: $color;
   font-size: $font-size;
   font-weight: $font-weight;
+  font-family: 'Roboto Condensed', 'Microsoft Yahei', sans-serif;
 }
 
 @mixin panel-label {
