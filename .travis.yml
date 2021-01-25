@@ -17,9 +17,6 @@ script:
 before_install:
   - openssl aes-256-cbc -K $encrypted_2f88525daf9f_key -iv $encrypted_2f88525daf9f_iv
     -in id_rsa.enc -out ~/.ssh/id_rsa -d
-    
-install:
-  - echo '$encrypted_2f88525daf9f_key' >> $HOME/.ssh/known_hosts
   
 after_success:
   - scp -r "$SOURCE_PATH" "$server_user"@"$server_ip":"$BLOG_PATH"
