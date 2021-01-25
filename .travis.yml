@@ -12,7 +12,8 @@ addons:
     - libcurl4-openssl-dev
     
 script:
-- JEKYLL_ENV=production bundle exec jekyll b
+  - JEKYLL_ENV=production bundle exec jekyll b
+  - echo '$encrypted_2f88525daf9f_key' >> $HOME/.ssh/known_hosts
 
 before_install:
   - openssl aes-256-cbc -K $encrypted_2f88525daf9f_key -iv $encrypted_2f88525daf9f_iv
