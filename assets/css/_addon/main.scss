@@ -1504,10 +1504,11 @@ img {
     ul {
       padding-left: 2.5rem;
 
-      > li:last-child {
-        > a {
+      > li > a {
           position: static;
-        }
+          -webkit-box-pack: start!important;
+          -ms-flex-pack: start!important;
+          justify-content: flex-start!important;
       }
 
       .nav-item {
