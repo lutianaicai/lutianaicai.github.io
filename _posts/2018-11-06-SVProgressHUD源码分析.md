@@ -1,5 +1,5 @@
 ---
-title: SVProgressHUD源码分析
+title: SVProgressHUD 源码分析
 date: 2018-11-06 
 categories: iOS
 tags: 源码分析
@@ -25,7 +25,7 @@ tags: 源码分析
 }
 ```
 
-常规的单例创建，根据是否是`App Extension`进行了判断以确定`Frame`大小
+常规的单例创建，根据是否是 `App Extension` 进行了判断以确定 `Frame` 大小
 
 ## Show Methods
 
@@ -102,11 +102,11 @@ tags: 源码分析
 }
 ```
 
-首先是`weakSelf` `strongSelf`标准写法，老生常谈了避免循环引用以及提前释放。
+首先是 `weakSelf` `strongSelf` 标准写法，老生常谈了避免循环引用以及提前释放。
 
-然后设置一些属性，根据progress判断选择合适的指示符。
+然后设置一些属性，根据 progress 判断选择合适的指示符。
 
-然后根据是否设置了`gracetime`调用或者延时调用`fadeIn`方法。
+然后根据是否设置了 `gracetime` 调用或者延时调用 `fadeIn` 方法。
 
 ```objc
 - (void)fadeIn:(id)data {
@@ -179,11 +179,11 @@ tags: 源码分析
 }
 ```
 
-其实就是如果已经显示完全了就`dismiss`，如果没有显示完全就先显示完全再`dismiss`
+其实就是如果已经显示完全了就 `dismiss`，如果没有显示完全就先显示完全再 `dismiss`
 
 ## Dismiss Methods
 
-同样dismiss暴露的也全部是类方法
+同样 dismiss 暴露的也全部是类方法
 
 * `+ (void)popActivity;`
 * `+ (void)dismiss;`
@@ -193,7 +193,7 @@ tags: 源码分析
 
 同样也是最终调用主方法：
 `- (void)dismissWithDelay:(NSTimeInterval)delay completion:(SVProgressHUDDismissCompletion)completion`
-这个方法其实逻辑跟`show`也差不多就是最终把`controlView` `backgroundView` `budView`都 remove 掉然后再把自己 remove，还有取消动画`progress`归零等
+这个方法其实逻辑跟 `show` 也差不多就是最终把 `controlView` `backgroundView` `budView` 都 remove 掉然后再把自己 remove，还有取消动画 `progress` 归零等
 
 ```objc
 - (void)dismissWithDelay:(NSTimeInterval)delay completion:(SVProgressHUDDismissCompletion)completion {
@@ -256,7 +256,7 @@ tags: 源码分析
 }
 ```
 
-这里有一个小细节，注释也写的很清楚了。就是`UIViewAnimationOptionBeginFromCurrentState`搭配`delay`总是有点跳动画的毛病，所以SV这里用`dispatch_after`来延时。
+这里有一个小细节，注释也写的很清楚了。就是`UIViewAnimationOptionBeginFromCurrentState` 搭配 `delay` 总是有点跳动画的毛病，所以SV这里用 `dispatch_after` 来延时。
 
 ## 总结
 
