@@ -1,0 +1,395 @@
+<!DOCTYPE html><html lang="en" ><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><meta name="theme" content="Chirpy v2.7.2"><meta name="generator" content="Jekyll v4.2.0" /><meta property="og:title" content="SVProgressHUD 源码分析" /><meta name="author" content="李昊舒" /><meta property="og:locale" content="en_US" /><meta name="description" content="众所周知 SVProgressHUD 是一个简洁易用的 HUD 库，我想探寻简洁易用背后的原理。" /><meta property="og:description" content="众所周知 SVProgressHUD 是一个简洁易用的 HUD 库，我想探寻简洁易用背后的原理。" /><link rel="canonical" href="https://lutianaicai.github.io/posts/SVProgressHUD%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" /><meta property="og:url" content="https://lutianaicai.github.io/posts/SVProgressHUD%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" /><meta property="og:site_name" content="李昊舒的博客" /><meta property="og:type" content="article" /><meta property="article:published_time" content="2018-11-06T00:00:00+08:00" /><meta name="twitter:card" content="summary" /><meta property="twitter:title" content="SVProgressHUD 源码分析" /><meta name="twitter:site" content="@magiclhs" /><meta name="twitter:creator" content="@李昊舒" /><meta name="google-site-verification" content="google_meta_tag_verification" /> <script type="application/ld+json"> {"author":{"@type":"Person","name":"李昊舒"},"description":"众所周知 SVProgressHUD 是一个简洁易用的 HUD 库，我想探寻简洁易用背后的原理。","url":"https://lutianaicai.github.io/posts/SVProgressHUD%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/","@type":"BlogPosting","headline":"SVProgressHUD 源码分析","dateModified":"2021-02-09T09:23:48+08:00","datePublished":"2018-11-06T00:00:00+08:00","mainEntityOfPage":{"@type":"WebPage","@id":"https://lutianaicai.github.io/posts/SVProgressHUD%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"},"@context":"https://schema.org"}</script><title>SVProgressHUD 源码分析 | 李昊舒的博客</title><link rel="shortcut icon" href="/assets/img/favicons/favicon.ico" type="image/x-icon"><link rel="icon" href="/assets/img/favicons/favicon.ico" type="image/x-icon"><link rel="apple-touch-icon" href="/assets/img/favicons/apple-icon.png"><link rel="apple-touch-icon" href="/assets/img/favicons/apple-icon-precomposed.png"><link rel="apple-touch-icon" sizes="57x57" href="/assets/img/favicons/apple-icon-57x57.png"><link rel="apple-touch-icon" sizes="60x60" href="/assets/img/favicons/apple-icon-60x60.png"><link rel="apple-touch-icon" sizes="72x72" href="/assets/img/favicons/apple-icon-72x72.png"><link rel="apple-touch-icon" sizes="76x76" href="/assets/img/favicons/apple-icon-76x76.png"><link rel="apple-touch-icon" sizes="114x114" href="/assets/img/favicons/apple-icon-114x114.png"><link rel="apple-touch-icon" sizes="120x120" href="/assets/img/favicons/apple-icon-120x120.png"><link rel="apple-touch-icon" sizes="144x144" href="/assets/img/favicons/apple-icon-144x144.png"><link rel="apple-touch-icon" sizes="152x152" href="/assets/img/favicons/apple-icon-152x152.png"><link rel="apple-touch-icon" sizes="180x180" href="/assets/img/favicons/apple-icon-180x180.png"><link rel="icon" type="image/png" sizes="192x192" href="/assets/img/favicons/android-icon-192x192.png"><link rel="icon" type="image/png" sizes="32x32" href="/assets/img/favicons/favicon-32x32.png"><link rel="icon" type="image/png" sizes="96x96" href="/assets/img/favicons/favicon-96x96.png"><link rel="icon" type="image/png" sizes="16x16" href="/assets/img/favicons/favicon-16x16.png"><link rel="manifest" href="/assets/img/favicons/manifest.json"><meta name='msapplication-config' content='/assets/img/favicons/browserconfig.xml'><meta name="msapplication-TileColor" content="#ffffff"><meta name="msapplication-TileImage" content="/assets/img/favicons/ms-icon-144x144.png"><meta name="theme-color" content="#ffffff"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"><link rel="dns-prefetch" href="https://fonts.gstatic.com"><link rel="preconnect" href="https://www.google-analytics.com" crossorigin="use-credentials"><link rel="dns-prefetch" href="https://www.google-analytics.com"><link rel="preconnect" href="https://www.googletagmanager.com" crossorigin="anonymous"><link rel="dns-prefetch" href="https://www.googletagmanager.com"><link rel="preconnect" href="cdn.jsdelivr.net"><link rel="dns-prefetch" href="cdn.jsdelivr.net"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha256-LA89z+k9fjgMKQ/kq4OO2Mrf8VltYml/VES+Rg0fh20=" crossorigin="anonymous"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.11.2/css/all.min.css" integrity="sha256-+N4/V/SbAFiW1MPBCXnfnP9QSN3+Keu+NlB+0ev/YKQ=" crossorigin="anonymous"><link rel="preload" href="/assets/css/post.css" as="style"><link rel="stylesheet" href="/assets/css/post.css"><link rel="preload" as="style" href="/assets/css/lib/bootstrap-toc.min.css"><link rel="stylesheet" href="/assets/css/lib/bootstrap-toc.min.css" /> <script src="https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script> <script defer src="https://cdn.jsdelivr.net/combine/npm/popper.js@1.15.0,npm/bootstrap@4/dist/js/bootstrap.min.js"></script> <script async src="/assets/js/post.min.js"></script> <script defer src="/app.js"></script> <script defer src="https://www.googletagmanager.com/gtag/js?id=G-TJL1M52M7E"></script> <script> document.addEventListener("DOMContentLoaded", function(event) { window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-TJL1M52M7E'); }); </script><body data-spy="scroll" data-target="#toc"><div id="sidebar" class="d-flex flex-column align-items-end"><div class="profile-wrapper text-center"><div id="avatar"> <a href="/" alt="avatar" class="mx-auto"> <img src="/assets/img/avatar.png" alt="avatar" onerror="this.style.display='none'"> </a></div><div class="site-title mt-3"> <a href="/">李昊舒的博客</a></div><div class="site-subtitle font-italic">温润如玉</div></div><ul class="nav flex-column w-100"><li class="nav-item d-flex justify-content-center "> <a href="/" class="nav-link d-flex justify-content-center align-items-center w-100"> <i class="fa-fw fas fa-home ml-xl-3 mr-xl-3 unloaded"></i> <span>主页</span> </a><li class="nav-item d-flex justify-content-center "> <a href="/tabs/categories/" class="nav-link d-flex justify-content-center align-items-center w-100"> <i class="fa-fw fas fa-stream ml-xl-3 mr-xl-3 unloaded"></i> <span>分类</span> </a><li class="nav-item d-flex justify-content-center "> <a href="/tabs/tags/" class="nav-link d-flex justify-content-center align-items-center w-100"> <i class="fa-fw fas fa-tags ml-xl-3 mr-xl-3 unloaded"></i> <span>标签</span> </a><li class="nav-item d-flex justify-content-center "> <a href="/tabs/archives/" class="nav-link d-flex justify-content-center align-items-center w-100"> <i class="fa-fw fas fa-archive ml-xl-3 mr-xl-3 unloaded"></i> <span>归档</span> </a><li class="nav-item d-flex justify-content-center "> <a href="/tabs/about/" class="nav-link d-flex justify-content-center align-items-center w-100"> <i class="fa-fw fas fa-info ml-xl-3 mr-xl-3 unloaded"></i> <span>关于</span> </a></ul><div class="sidebar-bottom mt-auto d-flex flex-wrap justify-content-center"> <a href="https://github.com/lutianaicai" aria-label="github" class="order-3" target="_blank" rel="noopener"> <i class="fab fa-github-alt"></i> </a> <a href="https://twitter.com/magiclhs" aria-label="twitter" class="order-4" target="_blank" rel="noopener"> <i class="fab fa-twitter"></i> </a> <a href="https://www.weibo.com/magiclhs" aria-label="" class="order-5" target="_blank" rel="noopener"> <i class="fab fa-weibo"></i> </a> <a href=" javascript:location.href = 'mailto:' + ['lihaoshu2046','gmail.com'].join('@')" aria-label="email" class="order-6" > <i class="fas fa-envelope"></i> </a> <span class="icon-border order-2"></span> <span id="mode-toggle-wrapper" class="order-1"> <i class="mode-toggle fas fa-adjust"></i> <script type="text/javascript"> class ModeToggle { static get MODE_KEY() { return "mode"; } static get DARK_MODE() { return "dark"; } static get LIGHT_MODE() { return "light"; } constructor() { if (this.mode != null) { if (this.mode == ModeToggle.DARK_MODE) { if (!this.isSysDarkPrefer) { this.setDark(); } } else { if (this.isSysDarkPrefer) { this.setLight(); } } } var self = this; /* always follow the system prefers */ this.sysDarkPrefers.addListener(function() { if (self.mode != null) { if (self.mode == ModeToggle.DARK_MODE) { if (!self.isSysDarkPrefer) { self.setDark(); } } else { if (self.isSysDarkPrefer) { self.setLight(); } } self.clearMode(); } }); } /* constructor() */ setDark() { $('html').attr(ModeToggle.MODE_KEY, ModeToggle.DARK_MODE); sessionStorage.setItem(ModeToggle.MODE_KEY, ModeToggle.DARK_MODE); } setLight() { $('html').attr(ModeToggle.MODE_KEY, ModeToggle.LIGHT_MODE); sessionStorage.setItem(ModeToggle.MODE_KEY, ModeToggle.LIGHT_MODE); } clearMode() { $('html').removeAttr(ModeToggle.MODE_KEY); sessionStorage.removeItem(ModeToggle.MODE_KEY); } get sysDarkPrefers() { return window.matchMedia("(prefers-color-scheme: dark)"); } get isSysDarkPrefer() { return this.sysDarkPrefers.matches; } get isDarkMode() { return this.mode == ModeToggle.DARK_MODE; } get isLightMode() { return this.mode == ModeToggle.LIGHT_MODE; } get hasMode() { return this.mode != null; } get mode() { return sessionStorage.getItem(ModeToggle.MODE_KEY); } get isResolvedDarkMode() { if (this.isLightMode) { return false; } return this.isSysDarkPrefer; } updateCommentStyle() { var theme = "github-light"; if (this.isResolvedDarkMode) { theme = "photon-dark"; } let comment = document.querySelector("iframe.utterances-frame"); if (comment == null) { return; } comment.contentWindow.postMessage( { type: "set-theme", theme: theme }, "https://utteranc.es/" ); } flipMode() { if (this.hasMode) { if (this.isSysDarkPrefer) { if (this.isLightMode) { this.clearMode(); } else { this.setLight(); } } else { if (this.isDarkMode) { this.clearMode(); } else { this.setDark(); } } } else { if (this.isSysDarkPrefer) { this.setLight(); } else { this.setDark(); } } this.updateCommentStyle(); } /* flipMode() */ } /* ModeToggle */ let toggle = new ModeToggle(); $(".mode-toggle").click(function() { toggle.flipMode(); }); </script> </span></div></div><div id="topbar-wrapper" class="row justify-content-center topbar-down"><div id="topbar" class="col-11 d-flex h-100 align-items-center justify-content-between"> <span id="breadcrumb"> <span> <a href="/"> 主页 </a> </span> <span>SVProgressHUD 源码分析</span> </span> <i id="sidebar-trigger" class="fas fa-bars fa-fw"></i><div id="topbar-title"> Post</div><i id="search-trigger" class="fas fa-search fa-fw"></i> <span id="search-wrapper" class="align-items-center"> <i class="fas fa-search fa-fw"></i> <input class="form-control" id="search-input" type="search" aria-label="search" placeholder="搜索..."> <i class="fa fa-times-circle fa-fw" id="search-cleaner"></i> </span> <span id="search-cancel" >Cancel</span></div></div><div id="main-wrapper"><div id="main"><div class="row"><div id="post-wrapper" class="col-12 col-lg-11 col-xl-8"><div class="post pl-1 pr-1 pl-sm-2 pr-sm-2 pl-md-4 pr-md-4"><h1 data-toc-skip>SVProgressHUD 源码分析</h1><div class="post-meta text-muted d-flex flex-column"><div> 由 <span class="author"> 李昊舒 </span> 发布于 <span class="timeago " data-toggle="tooltip" data-placement="bottom" title="Tue, Nov 6, 2018, 12:00 AM +0800" > 2018-11-06 <i class="unloaded">2018-11-06T00:00:00+08:00</i> </span></div></div><div class="post-content"><p>众所周知 <a href="https://github.com/SVProgressHUD/SVProgressHUD">SVProgressHUD</a> 是一个简洁易用的 HUD 库，我想探寻简洁易用背后的原理。</p><h2 id="singleton">Singleton</h2><p><code class="language-plaintext highlighter-rouge">SVProgressHUD</code> 同 <code class="language-plaintext highlighter-rouge">MBProgressHUD</code> 一样，都是 <code class="language-plaintext highlighter-rouge">UIView</code> 的子类，不同与 <code class="language-plaintext highlighter-rouge">MB</code> , <code class="language-plaintext highlighter-rouge">SV</code> 提供的是单例，这也是它简洁的一大因素。</p><div class="language-objc highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+</pre><td class="rouge-code"><pre><span class="k">+</span> <span class="p">(</span><span class="n">SVProgressHUD</span><span class="o">*</span><span class="p">)</span><span class="n">sharedView</span> <span class="p">{</span>
+    <span class="k">static</span> <span class="n">dispatch_once_t</span> <span class="n">once</span><span class="p">;</span>
+    
+    <span class="k">static</span> <span class="n">SVProgressHUD</span> <span class="o">*</span><span class="n">sharedView</span><span class="p">;</span>
+<span class="cp">#if !defined(SV_APP_EXTENSIONS)
+</span>    <span class="n">dispatch_once</span><span class="p">(</span><span class="o">&amp;</span><span class="n">once</span><span class="p">,</span> <span class="o">^</span><span class="p">{</span> <span class="n">sharedView</span> <span class="o">=</span> <span class="p">[[</span><span class="n">self</span> <span class="nf">alloc</span><span class="p">]</span> <span class="nf">initWithFrame</span><span class="p">:[[[</span><span class="n">UIApplication</span> <span class="nf">sharedApplication</span><span class="p">]</span> <span class="nf">delegate</span><span class="p">]</span> <span class="nf">window</span><span class="p">].</span><span class="n">bounds</span><span class="p">];</span> <span class="p">});</span>
+<span class="cp">#else
+</span>    <span class="n">dispatch_once</span><span class="p">(</span><span class="o">&amp;</span><span class="n">once</span><span class="p">,</span> <span class="o">^</span><span class="p">{</span> <span class="n">sharedView</span> <span class="o">=</span> <span class="p">[[</span><span class="n">self</span> <span class="nf">alloc</span><span class="p">]</span> <span class="nf">initWithFrame</span><span class="p">:[[</span><span class="n">UIScreen</span> <span class="nf">mainScreen</span><span class="p">]</span> <span class="nf">bounds</span><span class="p">]];</span> <span class="p">});</span>
+<span class="cp">#endif
+</span>    <span class="k">return</span> <span class="n">sharedView</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></table></code></div></div><p>常规的单例创建，根据是否是 <code class="language-plaintext highlighter-rouge">App Extension</code> 进行了判断以确定 <code class="language-plaintext highlighter-rouge">Frame</code> 大小</p><h2 id="show-methods">Show Methods</h2><p><code class="language-plaintext highlighter-rouge">SV</code> 不像 <code class="language-plaintext highlighter-rouge">MB</code> 可以有较高的自由度定制，所以为了简洁，暴露的全是类方法</p><div class="language-objc highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+</pre><td class="rouge-code"><pre><span class="k">+</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">show</span><span class="p">;</span>
+<span class="k">+</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">showWithStatus</span><span class="p">:(</span><span class="n">nullable</span> <span class="n">NSString</span><span class="o">*</span><span class="p">)</span><span class="nv">status</span><span class="p">;</span>
+<span class="k">+</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">showProgress</span><span class="p">:(</span><span class="kt">float</span><span class="p">)</span><span class="nv">progress</span><span class="p">;</span>
+<span class="k">+</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">showProgress</span><span class="p">:(</span><span class="kt">float</span><span class="p">)</span><span class="nv">progress</span> <span class="nf">status</span><span class="p">:(</span><span class="n">nullable</span> <span class="n">NSString</span><span class="o">*</span><span class="p">)</span><span class="nv">status</span><span class="p">;</span>
+</pre></table></code></div></div><p>没有列举全部，因为都不是重点，他们不添加图片的最终会调用主方法:</p><div class="language-objc highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+</pre><td class="rouge-code"><pre><span class="k">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">showProgress</span><span class="p">:(</span><span class="kt">float</span><span class="p">)</span><span class="nv">progress</span> <span class="nf">status</span><span class="p">:(</span><span class="n">NSString</span><span class="o">*</span><span class="p">)</span><span class="nv">status</span> <span class="p">{</span> <span class="p">}</span>
+</pre></table></code></div></div><p>有图的调用:</p><div class="language-objc highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+</pre><td class="rouge-code"><pre><span class="k">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">showImage</span><span class="p">:(</span><span class="n">UIImage</span><span class="o">*</span><span class="p">)</span><span class="nv">image</span> <span class="nf">status</span><span class="p">:(</span><span class="n">NSString</span><span class="o">*</span><span class="p">)</span><span class="nv">status</span> <span class="nf">duration</span><span class="p">:(</span><span class="n">NSTimeInterval</span><span class="p">)</span><span class="nv">duration</span> <span class="p">{</span> <span class="p">}</span>
+</pre></table></code></div></div><p>以无图为例:</p><div class="language-objc highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+</pre><td class="rouge-code"><pre><span class="k">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">showProgress</span><span class="p">:(</span><span class="kt">float</span><span class="p">)</span><span class="nv">progress</span> <span class="nf">status</span><span class="p">:(</span><span class="n">NSString</span><span class="o">*</span><span class="p">)</span><span class="nv">status</span> <span class="p">{</span>
+    <span class="n">__weak</span> <span class="n">SVProgressHUD</span> <span class="o">*</span><span class="n">weakSelf</span> <span class="o">=</span> <span class="n">self</span><span class="p">;</span>
+    <span class="p">[[</span><span class="n">NSOperationQueue</span> <span class="nf">mainQueue</span><span class="p">]</span> <span class="nf">addOperationWithBlock</span><span class="p">:</span><span class="o">^</span><span class="p">{</span>
+        <span class="n">__strong</span> <span class="n">SVProgressHUD</span> <span class="o">*</span><span class="n">strongSelf</span> <span class="o">=</span> <span class="n">weakSelf</span><span class="p">;</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">strongSelf</span><span class="p">){</span>
+            <span class="k">if</span><span class="p">(</span><span class="n">strongSelf</span><span class="p">.</span><span class="n">fadeOutTimer</span><span class="p">)</span> <span class="p">{</span>
+                <span class="n">strongSelf</span><span class="p">.</span><span class="n">activityCount</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+            <span class="p">}</span>
+            
+            <span class="c1">// Set properties</span>
+            <span class="n">strongSelf</span><span class="p">.</span><span class="n">fadeOutTimer</span> <span class="o">=</span> <span class="nb">nil</span><span class="p">;</span>
+            <span class="n">strongSelf</span><span class="p">.</span><span class="n">graceTimer</span> <span class="o">=</span> <span class="nb">nil</span><span class="p">;</span>
+            <span class="p">...</span>
+            
+            <span class="c1">// Choose the "right" indicator depending on the progress</span>
+            <span class="k">if</span><span class="p">(</span><span class="n">progress</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+                <span class="p">...</span>
+                <span class="c1">// Add ring to HUD</span>
+                <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">strongSelf</span><span class="p">.</span><span class="n">ringView</span><span class="p">.</span><span class="n">superview</span><span class="p">){</span>
+                    <span class="p">[</span><span class="n">strongSelf</span><span class="p">.</span><span class="n">hudView</span><span class="p">.</span><span class="n">contentView</span> <span class="nf">addSubview</span><span class="p">:</span><span class="n">strongSelf</span><span class="p">.</span><span class="n">ringView</span><span class="p">];</span>
+                <span class="p">}</span>
+                <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">strongSelf</span><span class="p">.</span><span class="n">backgroundRingView</span><span class="p">.</span><span class="n">superview</span><span class="p">){</span>
+                    <span class="p">[</span><span class="n">strongSelf</span><span class="p">.</span><span class="n">hudView</span><span class="p">.</span><span class="n">contentView</span> <span class="nf">addSubview</span><span class="p">:</span><span class="n">strongSelf</span><span class="p">.</span><span class="n">backgroundRingView</span><span class="p">];</span>
+                <span class="p">}</span>
+                <span class="p">...</span>
+            <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+                <span class="p">...</span>
+                <span class="c1">// Add indefiniteAnimatedView to HUD</span>
+                <span class="p">[</span><span class="n">strongSelf</span><span class="p">.</span><span class="n">hudView</span><span class="p">.</span><span class="n">contentView</span> <span class="nf">addSubview</span><span class="p">:</span><span class="n">strongSelf</span><span class="p">.</span><span class="n">indefiniteAnimatedView</span><span class="p">];</span>
+                <span class="k">if</span><span class="p">([</span><span class="n">strongSelf</span><span class="p">.</span><span class="n">indefiniteAnimatedView</span> <span class="nf">respondsToSelector</span><span class="p">:</span><span class="k">@selector</span><span class="p">(</span><span class="n">startAnimating</span><span class="p">)])</span> <span class="p">{</span>
+                    <span class="p">[(</span><span class="n">id</span><span class="p">)</span><span class="n">strongSelf</span><span class="p">.</span><span class="n">indefiniteAnimatedView</span> <span class="nf">startAnimating</span><span class="p">];</span>
+                <span class="p">}</span>
+                <span class="p">...</span>
+            <span class="p">}</span>
+            
+            <span class="c1">// Fade in delayed if a grace time is set</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">self</span><span class="p">.</span><span class="n">graceTimeInterval</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">.</span><span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">self</span><span class="p">.</span><span class="n">backgroundView</span><span class="p">.</span><span class="n">alpha</span> <span class="o">==</span> <span class="mi">0</span><span class="p">.</span><span class="mi">0</span><span class="n">f</span><span class="p">)</span> <span class="p">{</span>
+                <span class="n">strongSelf</span><span class="p">.</span><span class="n">graceTimer</span> <span class="o">=</span> <span class="p">[</span><span class="n">NSTimer</span> <span class="nf">timerWithTimeInterval</span><span class="p">:</span><span class="n">self</span><span class="p">.</span><span class="n">graceTimeInterval</span> <span class="nf">target</span><span class="p">:</span><span class="n">strongSelf</span> <span class="n">selector</span><span class="o">:</span><span class="k">@selector</span><span class="p">(</span><span class="n">fadeIn</span><span class="o">:</span><span class="p">)</span> <span class="n">userInfo</span><span class="o">:</span><span class="nb">nil</span> <span class="n">repeats</span><span class="o">:</span><span class="nb">NO</span><span class="p">];</span>
+                <span class="p">[[</span><span class="n">NSRunLoop</span> <span class="nf">mainRunLoop</span><span class="p">]</span> <span class="nf">addTimer</span><span class="p">:</span><span class="n">strongSelf</span><span class="p">.</span><span class="n">graceTimer</span> <span class="nf">forMode</span><span class="p">:</span><span class="n">NSRunLoopCommonModes</span><span class="p">];</span>
+            <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+                <span class="p">[</span><span class="n">strongSelf</span> <span class="nf">fadeIn</span><span class="p">:</span><span class="nb">nil</span><span class="p">];</span>
+            <span class="p">}</span>
+            
+            <span class="p">...</span>
+        <span class="p">}</span>
+    <span class="p">}];</span>
+<span class="p">}</span>
+</pre></table></code></div></div><p>首先是 <code class="language-plaintext highlighter-rouge">weakSelf</code> <code class="language-plaintext highlighter-rouge">strongSelf</code> 标准写法，老生常谈了避免循环引用以及提前释放。</p><p>然后设置一些属性，根据 progress 判断选择合适的指示符。</p><p>然后根据是否设置了 <code class="language-plaintext highlighter-rouge">gracetime</code> 调用或者延时调用 <code class="language-plaintext highlighter-rouge">fadeIn</code> 方法。</p><div class="language-objc highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+</pre><td class="rouge-code"><pre><span class="k">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">fadeIn</span><span class="p">:(</span><span class="n">id</span><span class="p">)</span><span class="nv">data</span> <span class="p">{</span>
+    <span class="c1">// Update the HUDs frame to the new content and position HUD</span>
+    <span class="p">[</span><span class="n">self</span> <span class="nf">updateHUDFrame</span><span class="p">];</span>
+    <span class="p">[</span><span class="n">self</span> <span class="nf">positionHUD</span><span class="p">:</span><span class="nb">nil</span><span class="p">];</span>
+    
+    <span class="p">...</span>
+    
+    <span class="c1">// Show if not already visible</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">self</span><span class="p">.</span><span class="n">backgroundView</span><span class="p">.</span><span class="n">alpha</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">.</span><span class="mi">0</span><span class="n">f</span><span class="p">)</span> <span class="p">{</span>
+        <span class="p">...</span>
+        
+        <span class="n">__block</span> <span class="kt">void</span> <span class="p">(</span><span class="o">^</span><span class="n">animationsBlock</span><span class="p">)(</span><span class="kt">void</span><span class="p">)</span> <span class="o">=</span> <span class="o">^</span><span class="p">{</span>
+            <span class="c1">// Zoom HUD a little to make a nice appear / pop up animation</span>
+            <span class="n">self</span><span class="p">.</span><span class="n">hudView</span><span class="p">.</span><span class="n">transform</span> <span class="o">=</span> <span class="n">CGAffineTransformIdentity</span><span class="p">;</span>
+            
+            <span class="c1">// Fade in all effects (colors, blur, etc.)</span>
+            <span class="p">[</span><span class="n">self</span> <span class="nf">fadeInEffects</span><span class="p">];</span>
+        <span class="p">};</span>
+        
+        <span class="n">__block</span> <span class="kt">void</span> <span class="p">(</span><span class="o">^</span><span class="n">completionBlock</span><span class="p">)(</span><span class="kt">void</span><span class="p">)</span> <span class="o">=</span> <span class="o">^</span><span class="p">{</span>
+            <span class="c1">// Check if we really achieved to show the HUD (&lt;=&gt; alpha)</span>
+            <span class="c1">// and the change of these values has not been cancelled in between e.g. due to a dismissal</span>
+            <span class="k">if</span><span class="p">(</span><span class="n">self</span><span class="p">.</span><span class="n">backgroundView</span><span class="p">.</span><span class="n">alpha</span> <span class="o">==</span> <span class="mi">1</span><span class="p">.</span><span class="mi">0</span><span class="n">f</span><span class="p">){</span>
+                <span class="c1">// Register observer &lt;=&gt; we now have to handle orientation changes etc.</span>
+                <span class="p">[</span><span class="n">self</span> <span class="nf">registerNotifications</span><span class="p">];</span>
+                
+                <span class="p">...</span>
+                
+                <span class="c1">// Dismiss automatically if a duration was passed as userInfo. We start a timer</span>
+                <span class="c1">// which then will call dismiss after the predefined duration</span>
+                <span class="k">if</span><span class="p">(</span><span class="n">duration</span><span class="p">){</span>
+                    <span class="n">self</span><span class="p">.</span><span class="n">fadeOutTimer</span> <span class="o">=</span> <span class="p">[</span><span class="n">NSTimer</span> <span class="nf">timerWithTimeInterval</span><span class="p">:[(</span><span class="n">NSNumber</span> <span class="o">*</span><span class="p">)</span><span class="n">duration</span> <span class="nf">doubleValue</span><span class="p">]</span> <span class="nf">target</span><span class="p">:</span><span class="n">self</span> <span class="n">selector</span><span class="o">:</span><span class="k">@selector</span><span class="p">(</span><span class="n">dismiss</span><span class="p">)</span> <span class="n">userInfo</span><span class="o">:</span><span class="nb">nil</span> <span class="n">repeats</span><span class="o">:</span><span class="nb">NO</span><span class="p">];</span>
+                    <span class="p">[[</span><span class="n">NSRunLoop</span> <span class="nf">mainRunLoop</span><span class="p">]</span> <span class="nf">addTimer</span><span class="p">:</span><span class="n">self</span><span class="p">.</span><span class="n">fadeOutTimer</span> <span class="nf">forMode</span><span class="p">:</span><span class="n">NSRunLoopCommonModes</span><span class="p">];</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+        <span class="p">};</span>
+        
+        <span class="c1">// Animate appearance</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">self</span><span class="p">.</span><span class="n">fadeInAnimationDuration</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+            <span class="c1">// Animate appearance</span>
+            <span class="p">[</span><span class="n">UIView</span> <span class="nf">animateWithDuration</span><span class="p">:</span><span class="n">self</span><span class="p">.</span><span class="n">fadeInAnimationDuration</span>
+                                  <span class="nl">delay:</span><span class="mi">0</span>
+                                <span class="nl">options:</span><span class="p">(</span><span class="n">UIViewAnimationOptions</span><span class="p">)</span> <span class="p">(</span><span class="n">UIViewAnimationOptionAllowUserInteraction</span> <span class="o">|</span> <span class="n">UIViewAnimationCurveEaseIn</span> <span class="o">|</span> <span class="n">UIViewAnimationOptionBeginFromCurrentState</span><span class="p">)</span>
+                             <span class="nl">animations:</span><span class="o">^</span><span class="p">{</span>
+                                 <span class="n">animationsBlock</span><span class="p">();</span>
+                             <span class="p">}</span> <span class="nf">completion</span><span class="p">:</span><span class="o">^</span><span class="p">(</span><span class="n">BOOL</span> <span class="n">finished</span><span class="p">)</span> <span class="p">{</span>
+                                 <span class="n">completionBlock</span><span class="p">();</span>
+                             <span class="p">}];</span>
+        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+            <span class="n">animationsBlock</span><span class="p">();</span>
+            <span class="n">completionBlock</span><span class="p">();</span>
+        <span class="p">}</span>
+        
+        <span class="c1">// Inform iOS to redraw the view hierarchy</span>
+        <span class="p">[</span><span class="n">self</span> <span class="nf">setNeedsDisplay</span><span class="p">];</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+        <span class="c1">// Update accessibility</span>
+        <span class="n">UIAccessibilityPostNotification</span><span class="p">(</span><span class="n">UIAccessibilityScreenChangedNotification</span><span class="p">,</span> <span class="nb">nil</span><span class="p">);</span>
+        <span class="n">UIAccessibilityPostNotification</span><span class="p">(</span><span class="n">UIAccessibilityAnnouncementNotification</span><span class="p">,</span> <span class="n">self</span><span class="p">.</span><span class="n">statusLabel</span><span class="p">.</span><span class="n">text</span><span class="p">);</span>
+        
+        <span class="c1">// Dismiss automatically if a duration was passed as userInfo. We start a timer</span>
+        <span class="c1">// which then will call dismiss after the predefined duration</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">duration</span><span class="p">){</span>
+            <span class="n">self</span><span class="p">.</span><span class="n">fadeOutTimer</span> <span class="o">=</span> <span class="p">[</span><span class="n">NSTimer</span> <span class="nf">timerWithTimeInterval</span><span class="p">:[(</span><span class="n">NSNumber</span> <span class="o">*</span><span class="p">)</span><span class="n">duration</span> <span class="nf">doubleValue</span><span class="p">]</span> <span class="nf">target</span><span class="p">:</span><span class="n">self</span> <span class="n">selector</span><span class="o">:</span><span class="k">@selector</span><span class="p">(</span><span class="n">dismiss</span><span class="p">)</span> <span class="n">userInfo</span><span class="o">:</span><span class="nb">nil</span> <span class="n">repeats</span><span class="o">:</span><span class="nb">NO</span><span class="p">];</span>
+            <span class="p">[[</span><span class="n">NSRunLoop</span> <span class="nf">mainRunLoop</span><span class="p">]</span> <span class="nf">addTimer</span><span class="p">:</span><span class="n">self</span><span class="p">.</span><span class="n">fadeOutTimer</span> <span class="nf">forMode</span><span class="p">:</span><span class="n">NSRunLoopCommonModes</span><span class="p">];</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></table></code></div></div><p>其实就是如果已经显示完全了就 <code class="language-plaintext highlighter-rouge">dismiss</code>，如果没有显示完全就先显示完全再 <code class="language-plaintext highlighter-rouge">dismiss</code></p><h2 id="dismiss-methods">Dismiss Methods</h2><p>同样 dismiss 暴露的也全部是类方法</p><ul><li><code class="language-plaintext highlighter-rouge">+ (void)popActivity;</code><li><code class="language-plaintext highlighter-rouge">+ (void)dismiss;</code><li><code class="language-plaintext highlighter-rouge">+ (void)dismissWithCompletion:(nullable SVProgressHUDDismissCompletion)completion;</code><li><code class="language-plaintext highlighter-rouge">+ (void)dismissWithDelay:(NSTimeInterval)delay;</code><li><code class="language-plaintext highlighter-rouge">+ (void)dismissWithDelay:(NSTimeInterval)delay completion:(nullable SVProgressHUDDismissCompletion)completion;</code></ul><p>同样也是最终调用主方法： <code class="language-plaintext highlighter-rouge">- (void)dismissWithDelay:(NSTimeInterval)delay completion:(SVProgressHUDDismissCompletion)completion</code> 这个方法其实逻辑跟 <code class="language-plaintext highlighter-rouge">show</code> 也差不多就是最终把 <code class="language-plaintext highlighter-rouge">controlView</code> <code class="language-plaintext highlighter-rouge">backgroundView</code> <code class="language-plaintext highlighter-rouge">budView</code> 都 remove 掉然后再把自己 remove，还有取消动画 <code class="language-plaintext highlighter-rouge">progress</code> 归零等</p><div class="language-objc highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+</pre><td class="rouge-code"><pre><span class="k">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">dismissWithDelay</span><span class="p">:(</span><span class="n">NSTimeInterval</span><span class="p">)</span><span class="nv">delay</span> <span class="nf">completion</span><span class="p">:(</span><span class="n">SVProgressHUDDismissCompletion</span><span class="p">)</span><span class="nv">completion</span> <span class="p">{</span>
+    <span class="n">__weak</span> <span class="n">SVProgressHUD</span> <span class="o">*</span><span class="n">weakSelf</span> <span class="o">=</span> <span class="n">self</span><span class="p">;</span>
+    <span class="p">[[</span><span class="n">NSOperationQueue</span> <span class="nf">mainQueue</span><span class="p">]</span> <span class="nf">addOperationWithBlock</span><span class="p">:</span><span class="o">^</span><span class="p">{</span>
+        <span class="n">__strong</span> <span class="n">SVProgressHUD</span> <span class="o">*</span><span class="n">strongSelf</span> <span class="o">=</span> <span class="n">weakSelf</span><span class="p">;</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">strongSelf</span><span class="p">){</span>
+            <span class="p">...</span>
+            
+            <span class="n">__block</span> <span class="kt">void</span> <span class="p">(</span><span class="o">^</span><span class="n">completionBlock</span><span class="p">)(</span><span class="kt">void</span><span class="p">)</span> <span class="o">=</span> <span class="o">^</span><span class="p">{</span>
+                <span class="c1">// Check if we really achieved to dismiss the HUD (&lt;=&gt; alpha values are applied)</span>
+                <span class="c1">// and the change of these values has not been cancelled in between e.g. due to a new show</span>
+                <span class="k">if</span><span class="p">(</span><span class="n">self</span><span class="p">.</span><span class="n">backgroundView</span><span class="p">.</span><span class="n">alpha</span> <span class="o">==</span> <span class="mi">0</span><span class="p">.</span><span class="mi">0</span><span class="n">f</span><span class="p">){</span>
+                    <span class="c1">// Clean up view hierarchy (overlays)</span>
+                    <span class="p">[</span><span class="n">strongSelf</span><span class="p">.</span><span class="n">controlView</span> <span class="nf">removeFromSuperview</span><span class="p">];</span>
+                    <span class="p">[</span><span class="n">strongSelf</span><span class="p">.</span><span class="n">backgroundView</span> <span class="nf">removeFromSuperview</span><span class="p">];</span>
+                    <span class="p">[</span><span class="n">strongSelf</span><span class="p">.</span><span class="n">hudView</span> <span class="nf">removeFromSuperview</span><span class="p">];</span>
+                    <span class="p">[</span><span class="n">strongSelf</span> <span class="nf">removeFromSuperview</span><span class="p">];</span>
+                    
+                    <span class="c1">// Reset progress and cancel any running animation</span>
+                    <span class="n">strongSelf</span><span class="p">.</span><span class="n">progress</span> <span class="o">=</span> <span class="n">SVProgressHUDUndefinedProgress</span><span class="p">;</span>
+                    <span class="p">[</span><span class="n">strongSelf</span> <span class="nf">cancelRingLayerAnimation</span><span class="p">];</span>
+                    <span class="p">[</span><span class="n">strongSelf</span> <span class="nf">cancelIndefiniteAnimatedViewAnimation</span><span class="p">];</span>
+                    
+                    <span class="p">...</span>                    
+                    <span class="c1">// Run an (optional) completionHandler</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="n">completion</span><span class="p">)</span> <span class="p">{</span>
+                        <span class="n">completion</span><span class="p">();</span>
+                    <span class="p">}</span>
+                <span class="p">}</span>
+            <span class="p">};</span>
+            
+            <span class="c1">// UIViewAnimationOptionBeginFromCurrentState AND a delay doesn't always work as expected</span>
+            <span class="c1">// When UIViewAnimationOptionBeginFromCurrentState is set, animateWithDuration: evaluates the current</span>
+            <span class="c1">// values to check if an animation is necessary. The evaluation happens at function call time and not</span>
+            <span class="c1">// after the delay =&gt; the animation is sometimes skipped. Therefore we delay using dispatch_after.</span>
+            
+            <span class="n">dispatch_time_t</span> <span class="n">dipatchTime</span> <span class="o">=</span> <span class="n">dispatch_time</span><span class="p">(</span><span class="n">DISPATCH_TIME_NOW</span><span class="p">,</span> <span class="p">(</span><span class="kt">int64_t</span><span class="p">)(</span><span class="n">delay</span> <span class="o">*</span> <span class="n">NSEC_PER_SEC</span><span class="p">));</span>
+            <span class="n">dispatch_after</span><span class="p">(</span><span class="n">dipatchTime</span><span class="p">,</span> <span class="n">dispatch_get_main_queue</span><span class="p">(),</span> <span class="o">^</span><span class="p">{</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">strongSelf</span><span class="p">.</span><span class="n">fadeOutAnimationDuration</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+                    <span class="c1">// Animate appearance</span>
+                    <span class="p">[</span><span class="n">UIView</span> <span class="nf">animateWithDuration</span><span class="p">:</span><span class="n">strongSelf</span><span class="p">.</span><span class="n">fadeOutAnimationDuration</span>
+                                          <span class="nl">delay:</span><span class="mi">0</span>
+                                        <span class="nl">options:</span><span class="p">(</span><span class="n">UIViewAnimationOptions</span><span class="p">)</span> <span class="p">(</span><span class="n">UIViewAnimationOptionAllowUserInteraction</span> <span class="o">|</span> <span class="n">UIViewAnimationCurveEaseOut</span> <span class="o">|</span> <span class="n">UIViewAnimationOptionBeginFromCurrentState</span><span class="p">)</span>
+                                     <span class="nl">animations:</span><span class="o">^</span><span class="p">{</span>
+                                         <span class="n">animationsBlock</span><span class="p">();</span>
+                                     <span class="p">}</span> <span class="nf">completion</span><span class="p">:</span><span class="o">^</span><span class="p">(</span><span class="n">BOOL</span> <span class="n">finished</span><span class="p">)</span> <span class="p">{</span>
+                                         <span class="n">completionBlock</span><span class="p">();</span>
+                                     <span class="p">}];</span>
+                <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+                    <span class="n">animationsBlock</span><span class="p">();</span>
+                    <span class="n">completionBlock</span><span class="p">();</span>
+                <span class="p">}</span>
+            <span class="p">});</span>
+            
+            <span class="c1">// Inform iOS to redraw the view hierarchy</span>
+            <span class="p">[</span><span class="n">strongSelf</span> <span class="nf">setNeedsDisplay</span><span class="p">];</span>
+        <span class="p">}</span>
+    <span class="p">}];</span>
+<span class="p">}</span>
+</pre></table></code></div></div><p>这里有一个小细节，注释也写的很清楚了。就是<code class="language-plaintext highlighter-rouge">UIViewAnimationOptionBeginFromCurrentState</code> 搭配 <code class="language-plaintext highlighter-rouge">delay</code> 总是有点跳动画的毛病，所以SV这里用 <code class="language-plaintext highlighter-rouge">dispatch_after</code> 来延时。</p><h2 id="总结">总结</h2><p>总体来讲，<a href="https://github.com/SVProgressHUD/SVProgressHUD">SVProgressHUD</a> 还是简洁易用为主，Github上给出的使用建议都是这种：</p><div class="language-objc highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+</pre><td class="rouge-code"><pre><span class="p">[</span><span class="n">SVProgressHUD</span> <span class="nf">show</span><span class="p">];</span>
+<span class="n">dispatch_async</span><span class="p">(</span><span class="n">dispatch_get_global_queue</span><span class="p">(</span><span class="n">DISPATCH_QUEUE_PRIORITY_DEFAULT</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="o">^</span><span class="p">{</span>
+    <span class="c1">// time-consuming task</span>
+    <span class="n">dispatch_async</span><span class="p">(</span><span class="n">dispatch_get_main_queue</span><span class="p">(),</span> <span class="o">^</span><span class="p">{</span>
+        <span class="p">[</span><span class="n">SVProgressHUD</span> <span class="nf">dismiss</span><span class="p">];</span>
+    <span class="p">});</span>
+<span class="p">});</span>
+</pre></table></code></div></div><p>源码实现确实也不算复杂，个人还是比较喜欢用。</p></div><div class="post-tail-wrapper text-muted"><div class="post-meta mb-3"> <i class="far fa-folder-open fa-fw mr-1"></i> <a href='/categories/ios/'>iOS</a></div><div class="post-tags"> <i class="fa fa-tags fa-fw mr-1"></i> <a href="/tags/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" class="post-tag no-text-decoration" >源码分析</a></div><div class="post-tail-bottom d-flex justify-content-between align-items-center mt-3 pt-5 pb-2"><div class="license-wrapper"> 该博客文章由作者通过 <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> 进行授权。</div><div class="share-wrapper"> <span class="share-label text-muted mr-1">分享</span> <span class="share-icons"> <a href="https://twitter.com/intent/tweet?text=SVProgressHUD 源码分析 - 李昊舒的博客&url=https://lutianaicai.github.io/posts/SVProgressHUD%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" data-toggle="tooltip" data-placement="top" title="Twitter" target="_blank" rel="noopener" aria-label="Twitter"> <i class="fa-fw fab fa-twitter"></i> </a> <a href="https://www.facebook.com/sharer/sharer.php?title=SVProgressHUD 源码分析 - 李昊舒的博客&u=https://lutianaicai.github.io/posts/SVProgressHUD%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" data-toggle="tooltip" data-placement="top" title="Facebook" target="_blank" rel="noopener" aria-label="Facebook"> <i class="fa-fw fab fa-facebook-square"></i> </a> <a href="https://telegram.me/share?text=SVProgressHUD 源码分析 - 李昊舒的博客&url=https://lutianaicai.github.io/posts/SVProgressHUD%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" data-toggle="tooltip" data-placement="top" title="Telegram" target="_blank" rel="noopener" aria-label="Telegram"> <i class="fa-fw fab fa-telegram"></i> </a> <a href="http://service.weibo.com/share/share.php?title=SVProgressHUD 源码分析 - 李昊舒的博客&url=https://lutianaicai.github.io/posts/SVProgressHUD%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" data-toggle="tooltip" data-placement="top" title="Weibo" target="_blank" rel="noopener" aria-label="Weibo"> <i class="fa-fw fab fa-weibo"></i> </a> <i class="fa-fw fas fa-link small" onclick="copyLink()" data-toggle="tooltip" data-placement="top" title="Copy link"></i> </span></div></div></div></div></div><div id="panel-wrapper" class="col-xl-3 pl-2 text-muted topbar-down"><div class="access"><div id="access-lastmod" class="post"> <span>最近更新</span><ul class="post-content pl-0 pb-1 ml-1 mt-2"><li><a href="/posts/%E7%A8%8B%E5%BA%8F%E5%91%98%E7%9A%84%E8%87%AA%E6%88%91%E4%BF%AE%E5%85%BB-%E9%93%BE%E6%8E%A5-%E8%A3%85%E8%BD%BD%E4%B8%8E%E5%BA%93%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0-%E5%9B%9B/">程序员的自我修养 ——链接、装载与库读书笔记（四）</a><li><a href="/posts/%E7%A8%8B%E5%BA%8F%E5%91%98%E7%9A%84%E8%87%AA%E6%88%91%E4%BF%AE%E5%85%BB-%E9%93%BE%E6%8E%A5-%E8%A3%85%E8%BD%BD%E4%B8%8E%E5%BA%93%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0-%E4%B8%80/">程序员的自我修养 ——链接、装载与库读书笔记（一）</a><li><a href="/posts/%E7%A8%8B%E5%BA%8F%E5%91%98%E7%9A%84%E8%87%AA%E6%88%91%E4%BF%AE%E5%85%BB-%E9%93%BE%E6%8E%A5-%E8%A3%85%E8%BD%BD%E4%B8%8E%E5%BA%93%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0-%E4%BA%8C/">程序员的自我修养 ——链接、装载与库读书笔记（二）</a><li><a href="/posts/%E7%A8%8B%E5%BA%8F%E5%91%98%E7%9A%84%E8%87%AA%E6%88%91%E4%BF%AE%E5%85%BB-%E9%93%BE%E6%8E%A5-%E8%A3%85%E8%BD%BD%E4%B8%8E%E5%BA%93%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0-%E4%B8%89/">程序员的自我修养 ——链接、装载与库读书笔记（三）</a><li><a href="/posts/Kingfisher%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/">Kingfisher 源码分析</a></ul></div><div id="access-tags"> <span>热门标签</span><div class="d-flex flex-wrap mt-3 mb-1 mr-3"> <a class="post-tag" href="/tags/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/">源码分析</a> <a class="post-tag" href="/tags/%E9%9D%99%E6%80%81%E9%93%BE%E6%8E%A5/">静态链接</a> <a class="post-tag" href="/tags/nginx/">nginx</a> <a class="post-tag" href="/tags/travis/">Travis</a> <a class="post-tag" href="/tags/%E5%8A%A8%E6%80%81%E9%93%BE%E6%8E%A5/">动态链接</a> <a class="post-tag" href="/tags/%E5%8D%9A%E5%AE%A2%E8%BF%81%E7%A7%BB/">博客迁移</a> <a class="post-tag" href="/tags/%E5%9F%BA%E7%A1%80/">基础</a> <a class="post-tag" href="/tags/%E5%B9%B4%E7%BB%88%E6%80%BB%E7%BB%93/">年终总结</a> <a class="post-tag" href="/tags/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/">操作系统</a> <a class="post-tag" href="/tags/%E6%9C%8D%E5%8A%A1%E5%99%A8/">服务器</a></div></div></div><div id="toc-wrapper" class="pl-0 pr-4 mb-5"> <span class="pl-3 pt-2 mb-2">文章目录</span><nav id="toc" data-toggle="toc"></nav></div></div></div><div class="row"><div class="col-12 col-lg-11 col-xl-8"><div id="post-extend-wrapper" class="pl-1 pr-1 pl-sm-2 pr-sm-2 pl-md-4 pr-md-4"><div id="related-posts" class="mt-5 mb-2 mb-sm-4"><h3 class="pt-2 mt-1 mb-4 ml-1" data-toc-skip>接下来阅读</h3><div class="card-deck mb-4"><div class="card"> <a href="/posts/Kingfisher%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"><div class="card-body"> <span class="timeago small" > 2018-10-24 <i class="unloaded">2018-10-24T00:00:00+08:00</i> </span><h3 class="pt-0 mt-1 mb-3" data-toc-skip>Kingfisher 源码分析</h3><div class="text-muted small"><p> 最近解决公司项目缓存问题时候发现自己对沙盒理解还不深刻，就从项目中看了一下喵神的实现，惊叹于 Kingfisher 这个库的整洁规范。所以就萌生了写一篇文章记录阅读源码这件事情的意愿。 从接口谈起 首先还是要稍微介绍一下 Kingfisher: Kingfisher is a lightweight, pure-Swift library for downloading and ca...</p></div></div></a></div><div class="card"> <a href="/posts/PromiseKit%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"><div class="card-body"> <span class="timeago small" > 2019-03-31 <i class="unloaded">2019-03-31T00:00:00+08:00</i> </span><h3 class="pt-0 mt-1 mb-3" data-toc-skip>PromiseKit 源码分析</h3><div class="text-muted small"><p> 面对回调地狱 PromiseKit 提供了一种简洁易用的异步编程模式。让你可以编写出更加易读，更加专注结果的代码。本文意在探寻简介背后的逻辑。 从最小类型谈去 搞清复杂封装的源码中最基本的类型就好比搞清一篇英文文章中所有看不懂的生词的意思。再想看懂文章，只需要把已知信息串联起来就行了。 Box box 是 PromiseKit 中基本的类，在介绍它之前，先得说一下同样定义在Box.swi...</p></div></div></a></div><div class="card"> <a href="/posts/%E7%A8%8B%E5%BA%8F%E5%91%98%E7%9A%84%E8%87%AA%E6%88%91%E4%BF%AE%E5%85%BB-%E9%93%BE%E6%8E%A5-%E8%A3%85%E8%BD%BD%E4%B8%8E%E5%BA%93%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0-%E5%9B%9B/"><div class="card-body"> <span class="timeago small" > 04-15 <i class="unloaded">2021-04-15T16:26:00+08:00</i> </span><h3 class="pt-0 mt-1 mb-3" data-toc-skip>程序员的自我修养 ——链接、装载与库读书笔记（四）</h3><div class="text-muted small"><p> 此系列为我学习经典的读书笔记，目的是理清知识脉络帮助理解记忆，内容深度、质量远远不及原书。如果您对相关知识感兴趣，强烈建议阅读原书程序员的自我修养 带着问题学习 为什么要动态链接 动态链接的关键结构有哪些 动态链接有哪些步骤 为什么要动态链接 静态链接使得不同开发者或部门之间能够按模块开发，这大大提高了生产效率，与此同时静态链接的两个缺点也显现出来。一个是占用...</p></div></div></a></div></div></div><div class="post-navigation d-flex justify-content-between"> <a href="/posts/Kingfisher%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" class="btn btn-outline-primary"><p>Kingfisher 源码分析</p></a> <a href="/posts/PromiseKit%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" class="btn btn-outline-primary"><p>PromiseKit 源码分析</p></a></div><div class="utterances-container"> <script src="https://utteranc.es/client.js" repo="lutianaicai/lutianaicai.github.io" issue-term="pathname" theme="photon-dark" crossorigin="anonymous" async> </script></div><script type="text/javascript"> $(function() { window.onmessage = evt => { if (evt.origin === 'https://utteranc.es') { toggle.updateCommentStyle(); window.onmessage = null; } } }); </script></div></div></div><footer class="d-flex w-100 justify-content-center"><div class="d-flex justify-content-between align-items-center"><div class="footer-left"><p class="mb-0"> © 2021 <a href="https://twitter.com/magiclhs">李昊舒</a>. <span data-toggle="tooltip" data-placement="top" title="除非另有说明，否则本网站上的博客文章均由作者根据知识共享许可协议 - 署名标示 4.0（CC BY 4.0）进行授权许可。">保留部分权利。</span> <a href="https://beian.miit.gov.cn/" target="_blank">冀 ICP 备 2021001127 号-1</a></p></div><div class="footer-right"><p class="mb-0"> 本博客由 <a href="https://jekyllrb.com" target="_blank" rel="noopener">Jekyll</a> 生成，使用 <a href="https://github.com/cotes2020/jekyll-theme-chirpy/" target="_blank" rel="noopener">Chirpy</a> 作为主题</p></div></div></footer></div><div id="search-result-wrapper" class="d-flex justify-content-center unloaded"><div class="col-12 col-xl-11 post-content"><div id="search-hints"><h4 class="text-muted mb-4">热门标签</h4><a class="post-tag" href="/tags/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/">源码分析</a> <a class="post-tag" href="/tags/%E9%9D%99%E6%80%81%E9%93%BE%E6%8E%A5/">静态链接</a> <a class="post-tag" href="/tags/nginx/">nginx</a> <a class="post-tag" href="/tags/travis/">Travis</a> <a class="post-tag" href="/tags/%E5%8A%A8%E6%80%81%E9%93%BE%E6%8E%A5/">动态链接</a> <a class="post-tag" href="/tags/%E5%8D%9A%E5%AE%A2%E8%BF%81%E7%A7%BB/">博客迁移</a> <a class="post-tag" href="/tags/%E5%9F%BA%E7%A1%80/">基础</a> <a class="post-tag" href="/tags/%E5%B9%B4%E7%BB%88%E6%80%BB%E7%BB%93/">年终总结</a> <a class="post-tag" href="/tags/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/">操作系统</a> <a class="post-tag" href="/tags/%E6%9C%8D%E5%8A%A1%E5%99%A8/">服务器</a></div><div id="search-results" class="d-flex flex-wrap justify-content-center text-muted mt-3"></div></div></div></div><div id="mask"></div><a id="back-to-top" href="#" aria-label="back-to-top" class="btn btn-lg btn-box-shadow" role="button"> <i class="fas fa-angle-up"></i> </a> <script src="https://cdn.jsdelivr.net/npm/simple-jekyll-search@1.7.3/dest/simple-jekyll-search.min.js"></script> <script> SimpleJekyllSearch({ searchInput: document.getElementById('search-input'), resultsContainer: document.getElementById('search-results'), json: '/assets/js/data/search.json', searchResultTemplate: '<div class="pl-1 pr-1 pl-sm-2 pr-sm-2 pl-lg-4 pr-lg-4 pl-xl-0 pr-xl-0"> <a href="https://lutianaicai.github.io{url}">{title}</a><div class="post-meta d-flex flex-column flex-sm-row text-muted mt-1 mb-1"><div class="mr-sm-4"><i class="far fa-folder fa-fw"></i>{categories}</div><div><i class="fa fa-tag fa-fw"></i>{tags}</div></div><p>{snippet}</p></div>', noResultsText: '<p class="mt-5">Oops! No result founds.</p>' }); </script>

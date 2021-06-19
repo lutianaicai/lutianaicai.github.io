@@ -1,0 +1,729 @@
+<!DOCTYPE html><html lang="en" ><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><meta name="theme" content="Chirpy v2.7.2"><meta name="generator" content="Jekyll v4.2.0" /><meta property="og:title" content="Kingfisher 源码分析" /><meta name="author" content="李昊舒" /><meta property="og:locale" content="en_US" /><meta name="description" content="最近解决公司项目缓存问题时候发现自己对沙盒理解还不深刻，就从项目中看了一下喵神的实现，惊叹于 Kingfisher 这个库的整洁规范。所以就萌生了写一篇文章记录阅读源码这件事情的意愿。" /><meta property="og:description" content="最近解决公司项目缓存问题时候发现自己对沙盒理解还不深刻，就从项目中看了一下喵神的实现，惊叹于 Kingfisher 这个库的整洁规范。所以就萌生了写一篇文章记录阅读源码这件事情的意愿。" /><link rel="canonical" href="https://lutianaicai.github.io/posts/Kingfisher%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" /><meta property="og:url" content="https://lutianaicai.github.io/posts/Kingfisher%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" /><meta property="og:site_name" content="李昊舒的博客" /><meta property="og:type" content="article" /><meta property="article:published_time" content="2018-10-24T00:00:00+08:00" /><meta name="twitter:card" content="summary" /><meta property="twitter:title" content="Kingfisher 源码分析" /><meta name="twitter:site" content="@magiclhs" /><meta name="twitter:creator" content="@李昊舒" /><meta name="google-site-verification" content="google_meta_tag_verification" /> <script type="application/ld+json"> {"author":{"@type":"Person","name":"李昊舒"},"description":"最近解决公司项目缓存问题时候发现自己对沙盒理解还不深刻，就从项目中看了一下喵神的实现，惊叹于 Kingfisher 这个库的整洁规范。所以就萌生了写一篇文章记录阅读源码这件事情的意愿。","url":"https://lutianaicai.github.io/posts/Kingfisher%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/","@type":"BlogPosting","headline":"Kingfisher 源码分析","dateModified":"2021-02-09T09:23:48+08:00","datePublished":"2018-10-24T00:00:00+08:00","mainEntityOfPage":{"@type":"WebPage","@id":"https://lutianaicai.github.io/posts/Kingfisher%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"},"@context":"https://schema.org"}</script><title>Kingfisher 源码分析 | 李昊舒的博客</title><link rel="shortcut icon" href="/assets/img/favicons/favicon.ico" type="image/x-icon"><link rel="icon" href="/assets/img/favicons/favicon.ico" type="image/x-icon"><link rel="apple-touch-icon" href="/assets/img/favicons/apple-icon.png"><link rel="apple-touch-icon" href="/assets/img/favicons/apple-icon-precomposed.png"><link rel="apple-touch-icon" sizes="57x57" href="/assets/img/favicons/apple-icon-57x57.png"><link rel="apple-touch-icon" sizes="60x60" href="/assets/img/favicons/apple-icon-60x60.png"><link rel="apple-touch-icon" sizes="72x72" href="/assets/img/favicons/apple-icon-72x72.png"><link rel="apple-touch-icon" sizes="76x76" href="/assets/img/favicons/apple-icon-76x76.png"><link rel="apple-touch-icon" sizes="114x114" href="/assets/img/favicons/apple-icon-114x114.png"><link rel="apple-touch-icon" sizes="120x120" href="/assets/img/favicons/apple-icon-120x120.png"><link rel="apple-touch-icon" sizes="144x144" href="/assets/img/favicons/apple-icon-144x144.png"><link rel="apple-touch-icon" sizes="152x152" href="/assets/img/favicons/apple-icon-152x152.png"><link rel="apple-touch-icon" sizes="180x180" href="/assets/img/favicons/apple-icon-180x180.png"><link rel="icon" type="image/png" sizes="192x192" href="/assets/img/favicons/android-icon-192x192.png"><link rel="icon" type="image/png" sizes="32x32" href="/assets/img/favicons/favicon-32x32.png"><link rel="icon" type="image/png" sizes="96x96" href="/assets/img/favicons/favicon-96x96.png"><link rel="icon" type="image/png" sizes="16x16" href="/assets/img/favicons/favicon-16x16.png"><link rel="manifest" href="/assets/img/favicons/manifest.json"><meta name='msapplication-config' content='/assets/img/favicons/browserconfig.xml'><meta name="msapplication-TileColor" content="#ffffff"><meta name="msapplication-TileImage" content="/assets/img/favicons/ms-icon-144x144.png"><meta name="theme-color" content="#ffffff"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"><link rel="dns-prefetch" href="https://fonts.gstatic.com"><link rel="preconnect" href="https://www.google-analytics.com" crossorigin="use-credentials"><link rel="dns-prefetch" href="https://www.google-analytics.com"><link rel="preconnect" href="https://www.googletagmanager.com" crossorigin="anonymous"><link rel="dns-prefetch" href="https://www.googletagmanager.com"><link rel="preconnect" href="cdn.jsdelivr.net"><link rel="dns-prefetch" href="cdn.jsdelivr.net"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha256-LA89z+k9fjgMKQ/kq4OO2Mrf8VltYml/VES+Rg0fh20=" crossorigin="anonymous"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.11.2/css/all.min.css" integrity="sha256-+N4/V/SbAFiW1MPBCXnfnP9QSN3+Keu+NlB+0ev/YKQ=" crossorigin="anonymous"><link rel="preload" href="/assets/css/post.css" as="style"><link rel="stylesheet" href="/assets/css/post.css"><link rel="preload" as="style" href="/assets/css/lib/bootstrap-toc.min.css"><link rel="stylesheet" href="/assets/css/lib/bootstrap-toc.min.css" /> <script src="https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script> <script defer src="https://cdn.jsdelivr.net/combine/npm/popper.js@1.15.0,npm/bootstrap@4/dist/js/bootstrap.min.js"></script> <script async src="/assets/js/post.min.js"></script> <script defer src="/app.js"></script> <script defer src="https://www.googletagmanager.com/gtag/js?id=G-TJL1M52M7E"></script> <script> document.addEventListener("DOMContentLoaded", function(event) { window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-TJL1M52M7E'); }); </script><body data-spy="scroll" data-target="#toc"><div id="sidebar" class="d-flex flex-column align-items-end"><div class="profile-wrapper text-center"><div id="avatar"> <a href="/" alt="avatar" class="mx-auto"> <img src="/assets/img/avatar.png" alt="avatar" onerror="this.style.display='none'"> </a></div><div class="site-title mt-3"> <a href="/">李昊舒的博客</a></div><div class="site-subtitle font-italic">温润如玉</div></div><ul class="nav flex-column w-100"><li class="nav-item d-flex justify-content-center "> <a href="/" class="nav-link d-flex justify-content-center align-items-center w-100"> <i class="fa-fw fas fa-home ml-xl-3 mr-xl-3 unloaded"></i> <span>主页</span> </a><li class="nav-item d-flex justify-content-center "> <a href="/tabs/categories/" class="nav-link d-flex justify-content-center align-items-center w-100"> <i class="fa-fw fas fa-stream ml-xl-3 mr-xl-3 unloaded"></i> <span>分类</span> </a><li class="nav-item d-flex justify-content-center "> <a href="/tabs/tags/" class="nav-link d-flex justify-content-center align-items-center w-100"> <i class="fa-fw fas fa-tags ml-xl-3 mr-xl-3 unloaded"></i> <span>标签</span> </a><li class="nav-item d-flex justify-content-center "> <a href="/tabs/archives/" class="nav-link d-flex justify-content-center align-items-center w-100"> <i class="fa-fw fas fa-archive ml-xl-3 mr-xl-3 unloaded"></i> <span>归档</span> </a><li class="nav-item d-flex justify-content-center "> <a href="/tabs/about/" class="nav-link d-flex justify-content-center align-items-center w-100"> <i class="fa-fw fas fa-info ml-xl-3 mr-xl-3 unloaded"></i> <span>关于</span> </a></ul><div class="sidebar-bottom mt-auto d-flex flex-wrap justify-content-center"> <a href="https://github.com/lutianaicai" aria-label="github" class="order-3" target="_blank" rel="noopener"> <i class="fab fa-github-alt"></i> </a> <a href="https://twitter.com/magiclhs" aria-label="twitter" class="order-4" target="_blank" rel="noopener"> <i class="fab fa-twitter"></i> </a> <a href="https://www.weibo.com/magiclhs" aria-label="" class="order-5" target="_blank" rel="noopener"> <i class="fab fa-weibo"></i> </a> <a href=" javascript:location.href = 'mailto:' + ['lihaoshu2046','gmail.com'].join('@')" aria-label="email" class="order-6" > <i class="fas fa-envelope"></i> </a> <span class="icon-border order-2"></span> <span id="mode-toggle-wrapper" class="order-1"> <i class="mode-toggle fas fa-adjust"></i> <script type="text/javascript"> class ModeToggle { static get MODE_KEY() { return "mode"; } static get DARK_MODE() { return "dark"; } static get LIGHT_MODE() { return "light"; } constructor() { if (this.mode != null) { if (this.mode == ModeToggle.DARK_MODE) { if (!this.isSysDarkPrefer) { this.setDark(); } } else { if (this.isSysDarkPrefer) { this.setLight(); } } } var self = this; /* always follow the system prefers */ this.sysDarkPrefers.addListener(function() { if (self.mode != null) { if (self.mode == ModeToggle.DARK_MODE) { if (!self.isSysDarkPrefer) { self.setDark(); } } else { if (self.isSysDarkPrefer) { self.setLight(); } } self.clearMode(); } }); } /* constructor() */ setDark() { $('html').attr(ModeToggle.MODE_KEY, ModeToggle.DARK_MODE); sessionStorage.setItem(ModeToggle.MODE_KEY, ModeToggle.DARK_MODE); } setLight() { $('html').attr(ModeToggle.MODE_KEY, ModeToggle.LIGHT_MODE); sessionStorage.setItem(ModeToggle.MODE_KEY, ModeToggle.LIGHT_MODE); } clearMode() { $('html').removeAttr(ModeToggle.MODE_KEY); sessionStorage.removeItem(ModeToggle.MODE_KEY); } get sysDarkPrefers() { return window.matchMedia("(prefers-color-scheme: dark)"); } get isSysDarkPrefer() { return this.sysDarkPrefers.matches; } get isDarkMode() { return this.mode == ModeToggle.DARK_MODE; } get isLightMode() { return this.mode == ModeToggle.LIGHT_MODE; } get hasMode() { return this.mode != null; } get mode() { return sessionStorage.getItem(ModeToggle.MODE_KEY); } get isResolvedDarkMode() { if (this.isLightMode) { return false; } return this.isSysDarkPrefer; } updateCommentStyle() { var theme = "github-light"; if (this.isResolvedDarkMode) { theme = "photon-dark"; } let comment = document.querySelector("iframe.utterances-frame"); if (comment == null) { return; } comment.contentWindow.postMessage( { type: "set-theme", theme: theme }, "https://utteranc.es/" ); } flipMode() { if (this.hasMode) { if (this.isSysDarkPrefer) { if (this.isLightMode) { this.clearMode(); } else { this.setLight(); } } else { if (this.isDarkMode) { this.clearMode(); } else { this.setDark(); } } } else { if (this.isSysDarkPrefer) { this.setLight(); } else { this.setDark(); } } this.updateCommentStyle(); } /* flipMode() */ } /* ModeToggle */ let toggle = new ModeToggle(); $(".mode-toggle").click(function() { toggle.flipMode(); }); </script> </span></div></div><div id="topbar-wrapper" class="row justify-content-center topbar-down"><div id="topbar" class="col-11 d-flex h-100 align-items-center justify-content-between"> <span id="breadcrumb"> <span> <a href="/"> 主页 </a> </span> <span>Kingfisher 源码分析</span> </span> <i id="sidebar-trigger" class="fas fa-bars fa-fw"></i><div id="topbar-title"> Post</div><i id="search-trigger" class="fas fa-search fa-fw"></i> <span id="search-wrapper" class="align-items-center"> <i class="fas fa-search fa-fw"></i> <input class="form-control" id="search-input" type="search" aria-label="search" placeholder="搜索..."> <i class="fa fa-times-circle fa-fw" id="search-cleaner"></i> </span> <span id="search-cancel" >Cancel</span></div></div><div id="main-wrapper"><div id="main"><div class="row"><div id="post-wrapper" class="col-12 col-lg-11 col-xl-8"><div class="post pl-1 pr-1 pl-sm-2 pr-sm-2 pl-md-4 pr-md-4"><h1 data-toc-skip>Kingfisher 源码分析</h1><div class="post-meta text-muted d-flex flex-column"><div> 由 <span class="author"> 李昊舒 </span> 发布于 <span class="timeago " data-toggle="tooltip" data-placement="bottom" title="Wed, Oct 24, 2018, 12:00 AM +0800" > 2018-10-24 <i class="unloaded">2018-10-24T00:00:00+08:00</i> </span></div></div><div class="post-content"><p>最近解决公司项目缓存问题时候发现自己对沙盒理解还不深刻，就从项目中看了一下喵神的实现，惊叹于 Kingfisher 这个库的整洁规范。所以就萌生了写一篇文章记录阅读源码这件事情的意愿。</p><h2 id="从接口谈起">从接口谈起</h2><p>首先还是要稍微介绍一下 Kingfisher:</p><blockquote><p>Kingfisher is a lightweight, pure-Swift library for downloading and caching images from the web. This project is heavily inspired by the popular <a href="https://github.com/rs/SDWebImage">SDWebImage</a>. It provides you a chance to use a pure-Swift alternative in your next app.</p></blockquote><p>喵神自己说受到了 <a href="https://github.com/rs/SDWebImage">SDWebImage</a> 的启发，Kingfisher 能给你一种纯 Swift 的体验。各位应该都不会陌生，就从这个最基本的方法开始分析吧：</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+</pre><td class="rouge-code"><pre><span class="k">let</span> <span class="nv">url</span> <span class="o">=</span> <span class="kt">URL</span><span class="p">(</span><span class="nv">string</span><span class="p">:</span> <span class="s">"url_of_your_image"</span><span class="p">)</span>
+<span class="n">imageView</span><span class="o">.</span><span class="n">kf</span><span class="o">.</span><span class="nf">setImage</span><span class="p">(</span><span class="nv">with</span><span class="p">:</span> <span class="n">url</span><span class="p">)</span>
+</pre></table></code></div></div><p>相较于 SDwebImage 的</p><div class="language-objc highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+</pre><td class="rouge-code"><pre><span class="p">[</span><span class="n">self</span><span class="p">.</span><span class="n">imageView</span> <span class="nf">sd_setImageWithURL</span><span class="p">:[</span><span class="n">NSURL</span> <span class="nf">URLWithString</span><span class="p">:</span><span class="s">@"url"</span><span class="p">]</span>
+                  <span class="nl">placeholderImage:</span><span class="p">[</span><span class="n">UIImage</span> <span class="nf">imageNamed</span><span class="p">:</span><span class="s">@"placeholder.png"</span><span class="p">]];</span>
+
+</pre></table></code></div></div><p>Kingfisher 这里依旧保持了调用的简洁风格，主要功能一行代码。这里的方法调用体现了 Swift 跟 OC 的一点风格差异，在这里稍微展开谈谈。</p><h3 id="kf-与-sd_">kf 与 sd_</h3><p><code class="language-plaintext highlighter-rouge">SDWebImage</code> 的主要方法采取的是加前缀的方式进行对扩展方法的标记。 <code class="language-plaintext highlighter-rouge">Kingfisher</code> 既然是纯 Swift 框架就必然从 <em>OOP</em>（object-oriented programming）过渡到了 <em>POP</em>（protocol oriented programming）我们来看 <code class="language-plaintext highlighter-rouge">kf</code> 这种链式调用是如何实现的</p><p>1.首先定义一个不可继承且具有 <code class="language-plaintext highlighter-rouge">Base</code> 范型的 class</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+</pre><td class="rouge-code"><pre><span class="kd">public</span> <span class="kd">final</span> <span class="kd">class</span> <span class="kt">Kingfisher</span><span class="o">&lt;</span><span class="kt">Base</span><span class="o">&gt;</span> <span class="p">{</span>
+    <span class="kd">public</span> <span class="k">let</span> <span class="nv">base</span><span class="p">:</span> <span class="kt">Base</span>
+    <span class="kd">public</span> <span class="nf">init</span><span class="p">(</span><span class="n">_</span> <span class="nv">base</span><span class="p">:</span> <span class="kt">Base</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">self</span><span class="o">.</span><span class="n">base</span> <span class="o">=</span> <span class="n">base</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></table></code></div></div><p>2.接着定义一个 <code class="language-plaintext highlighter-rouge">KingfisherCompatible</code> 协议，协议定义了一个只读属性 <code class="language-plaintext highlighter-rouge">kf</code> 。</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+</pre><td class="rouge-code"><pre><span class="kd">public</span> <span class="kd">protocol</span> <span class="kt">KingfisherCompatible</span> <span class="p">{</span>
+    <span class="kd">associatedtype</span> <span class="kt">CompatibleType</span>
+    <span class="k">var</span> <span class="nv">kf</span><span class="p">:</span> <span class="kt">CompatibleType</span> <span class="p">{</span> <span class="k">get</span> <span class="p">}</span>
+<span class="p">}</span>
+</pre></table></code></div></div><p>3.接着在扩展中实现 <code class="language-plaintext highlighter-rouge">KingfisherCompatible</code> 协议，调用 <code class="language-plaintext highlighter-rouge">kf</code> 返回一个 <code class="language-plaintext highlighter-rouge">Kingfisher</code> 对象。</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+</pre><td class="rouge-code"><pre><span class="kd">public</span> <span class="kd">extension</span> <span class="kt">KingfisherCompatible</span> <span class="p">{</span>
+    <span class="kd">public</span> <span class="k">var</span> <span class="nv">kf</span><span class="p">:</span> <span class="kt">Kingfisher</span><span class="o">&lt;</span><span class="k">Self</span><span class="o">&gt;</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="kt">Kingfisher</span><span class="p">(</span><span class="k">self</span><span class="p">)</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></table></code></div></div><p>4.使 <code class="language-plaintext highlighter-rouge">Kingfisher</code> 中定义的 <code class="language-plaintext highlighter-rouge">Image</code>，<code class="language-plaintext highlighter-rouge">ImageView</code>，<code class="language-plaintext highlighter-rouge">Button</code> 遵循<code class="language-plaintext highlighter-rouge">KingfisherCompatible</code>。</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+</pre><td class="rouge-code"><pre><span class="kd">extension</span> <span class="kt">Image</span><span class="p">:</span> <span class="kt">KingfisherCompatible</span> <span class="p">{</span> <span class="p">}</span>
+<span class="kd">extension</span> <span class="kt">ImageView</span><span class="p">:</span> <span class="kt">KingfisherCompatible</span> <span class="p">{</span> <span class="p">}</span>
+<span class="kd">extension</span> <span class="kt">Button</span><span class="p">:</span> <span class="kt">KingfisherCompatible</span> <span class="p">{</span> <span class="p">}</span>
+</pre></table></code></div></div><p>接着就可以通过限定扩展 <code class="language-plaintext highlighter-rouge">extesion...where...</code> 对不同的类添加特定的方法了。比如：</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+</pre><td class="rouge-code"><pre><span class="kd">extension</span> <span class="kt">Kingfisher</span> <span class="k">where</span> <span class="kt">Base</span><span class="p">:</span> <span class="kt">ImageView</span> <span class="p">{</span>
+	<span class="o">...</span>
+<span class="p">}</span>
+</pre></table></code></div></div><h2 id="一探究竟">一探究竟</h2><h3 id="imageview--kingfisher">ImageView + Kingfisher</h3><p>我们就以 <a href="https://github.com/onevcat/Kingfisher/blob/master/Sources/ImageView%2BKingfisher.swift">ImageView+Kingfisher</a> 为例</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+</pre><td class="rouge-code"><pre><span class="cm">/**
+     Set an image with a resource, a placeholder image, options, progress handler and completion handler.
+     
+     - parameter resource:          Resource object contains information such as `cacheKey` and `downloadURL`.
+     - parameter placeholder:       A placeholder image when retrieving the image at URL.
+     - parameter options:           A dictionary could control some behaviors. See `KingfisherOptionsInfo` for more.
+     - parameter progressBlock:     Called when the image downloading progress gets updated.
+     - parameter completionHandler: Called when the image retrieved and set.
+     
+     - returns: A task represents the retrieving process.
+*/</span>
+    <span class="kd">@discardableResult</span>
+    <span class="kd">public</span> <span class="kd">func</span> <span class="nf">setImage</span><span class="p">(</span><span class="n">with</span> <span class="nv">resource</span><span class="p">:</span> <span class="kt">Resource</span><span class="p">?,</span>
+                         <span class="nv">placeholder</span><span class="p">:</span> <span class="kt">Placeholder</span><span class="p">?</span> <span class="o">=</span> <span class="kc">nil</span><span class="p">,</span>
+                         <span class="nv">options</span><span class="p">:</span> <span class="kt">KingfisherOptionsInfo</span><span class="p">?</span> <span class="o">=</span> <span class="kc">nil</span><span class="p">,</span>
+                         <span class="nv">progressBlock</span><span class="p">:</span> <span class="kt">DownloadProgressBlock</span><span class="p">?</span> <span class="o">=</span> <span class="kc">nil</span><span class="p">,</span>
+                         <span class="nv">completionHandler</span><span class="p">:</span> <span class="kt">CompletionHandler</span><span class="p">?</span> <span class="o">=</span> <span class="kc">nil</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">RetrieveImageTask</span> 
+</pre></table></code></div></div><p>这个就是给 ImageView 设置图片的主方法，因为 Swift 方法的参数可空导致这里就一个主方法而不像 OC 内种写一个万能方法再写一堆缺少某些参数的便利方法去调用万能方法。</p><p>其实喵神这里注释写的已经非常清楚了，我这里简单展开说明一下。 ***</p><h4 id="资源-resource">资源 Resource</h4><p>参数第一个 <code class="language-plaintext highlighter-rouge">resource</code> 其实是一个协议，它定义了从缓存查找图片的 <code class="language-plaintext highlighter-rouge">cacheKey</code> 以及网络加载的 <code class="language-plaintext highlighter-rouge">downloadURL</code></p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+</pre><td class="rouge-code"><pre><span class="kd">public</span> <span class="kd">protocol</span> <span class="kt">Resource</span> <span class="p">{</span>
+    <span class="c1">/// The key used in cache.</span>
+    <span class="k">var</span> <span class="nv">cacheKey</span><span class="p">:</span> <span class="kt">String</span> <span class="p">{</span> <span class="k">get</span> <span class="p">}</span>
+    
+    <span class="c1">/// The target image URL.</span>
+    <span class="k">var</span> <span class="nv">downloadURL</span><span class="p">:</span> <span class="kt">URL</span> <span class="p">{</span> <span class="k">get</span> <span class="p">}</span>
+<span class="p">}</span>
+</pre></table></code></div></div><p>以及主方法实现的第一步就是对 <code class="language-plaintext highlighter-rouge">resource</code> 进行判空，如果为空就返回一个空 <code class="language-plaintext highlighter-rouge">RetrieveImageTask</code></p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+</pre><td class="rouge-code"><pre><span class="k">guard</span> <span class="k">let</span> <span class="nv">resource</span> <span class="o">=</span> <span class="n">resource</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="k">self</span><span class="o">.</span><span class="n">placeholder</span> <span class="o">=</span> <span class="n">placeholder</span>
+    <span class="nf">setWebURL</span><span class="p">(</span><span class="kc">nil</span><span class="p">)</span>
+    <span class="nf">completionHandler</span><span class="p">?(</span><span class="kc">nil</span><span class="p">,</span> <span class="kc">nil</span><span class="p">,</span> <span class="o">.</span><span class="k">none</span><span class="p">,</span> <span class="kc">nil</span><span class="p">)</span>
+    <span class="k">return</span> <span class="o">.</span><span class="n">empty</span>
+<span class="p">}</span>
+</pre></table></code></div></div><p>如果不为空那么就给 <code class="language-plaintext highlighter-rouge">ImageView+Kingfisher</code> 动态添加的属性 <code class="language-plaintext highlighter-rouge">webURL</code> 赋值</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+</pre><td class="rouge-code"><pre><span class="nf">setWebURL</span><span class="p">(</span><span class="n">resource</span><span class="o">.</span><span class="n">downloadURL</span><span class="p">)</span>
+</pre></table></code></div></div><hr /><h4 id="占位图">占位图</h4><p>再说第二个参数 <code class="language-plaintext highlighter-rouge">placeholder</code>，它也是一个协议（所谓从一个协议开始），很简单就是定义了两个方法，一个添加占位图，一个删除占位图</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+</pre><td class="rouge-code"><pre><span class="kd">public</span> <span class="kd">protocol</span> <span class="kt">Placeholder</span> <span class="p">{</span>
+    
+    <span class="c1">/// How the placeholder should be added to a given image view.</span>
+    <span class="kd">func</span> <span class="nf">add</span><span class="p">(</span><span class="n">to</span> <span class="nv">imageView</span><span class="p">:</span> <span class="kt">ImageView</span><span class="p">)</span>
+    
+    <span class="c1">/// How the placeholder should be removed from a given image view.</span>
+    <span class="kd">func</span> <span class="nf">remove</span><span class="p">(</span><span class="n">from</span> <span class="nv">imageView</span><span class="p">:</span> <span class="kt">ImageView</span><span class="p">)</span>
+<span class="p">}</span>
+</pre></table></code></div></div><p>在主方法中是这样添加占位图的</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+</pre><td class="rouge-code"><pre><span class="k">if</span> <span class="o">!</span><span class="n">options</span><span class="o">.</span><span class="n">keepCurrentImageWhileLoading</span> <span class="o">||</span> <span class="n">noImageOrPlaceholderSet</span> <span class="p">{</span>
+<span class="c1">// Always set placeholder while there is no image/placeholder yet.</span>
+    <span class="k">self</span><span class="o">.</span><span class="n">placeholder</span> <span class="o">=</span> <span class="n">placeholder</span>
+<span class="p">}</span>
+</pre></table></code></div></div><p>注释写的清楚，当还没有 image 或 placeholder 时，总是设置一个 placeholder ***</p><h4 id="策略-options">策略 options</h4><p>第三个参数 <code class="language-plaintext highlighter-rouge">options</code> 这回不是协议了，它是一个包含不同策略信息的数组。诸如强制刷新啊，只内存缓存图片啊之类。如果用户不进行配置那么系统将使用默认</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+</pre><td class="rouge-code"><pre><span class="k">var</span> <span class="nv">options</span> <span class="o">=</span> <span class="kt">KingfisherManager</span><span class="o">.</span><span class="n">shared</span><span class="o">.</span><span class="n">defaultOptions</span> <span class="o">+</span> <span class="p">(</span><span class="n">options</span> <span class="p">??</span> <span class="kt">KingfisherEmptyOptionsInfo</span><span class="p">)</span>
+</pre></table></code></div></div><p>剩下两个参数分别是 <code class="language-plaintext highlighter-rouge">progress</code> 回调和 <code class="language-plaintext highlighter-rouge">completion</code> 回调就不细说了。 ***</p><h4 id="获取图片">获取图片</h4><p>这些参数都准备好了就开始 让<code class="language-plaintext highlighter-rouge">KingfisherManager.shared</code> 调用下面方法去获取图片</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+</pre><td class="rouge-code"><pre><span class="kd">func</span> <span class="nf">retrieveImage</span><span class="p">(</span><span class="n">with</span> <span class="nv">resource</span><span class="p">:</span> <span class="kt">Resource</span><span class="p">,</span>
+        <span class="nv">options</span><span class="p">:</span> <span class="kt">KingfisherOptionsInfo</span><span class="p">?,</span>
+        <span class="nv">progressBlock</span><span class="p">:</span> <span class="kt">DownloadProgressBlock</span><span class="p">?,</span>
+        <span class="nv">completionHandler</span><span class="p">:</span> <span class="kt">CompletionHandler</span><span class="p">?)</span> <span class="o">-&gt;</span> <span class="kt">RetrieveImageTask</span>
+</pre></table></code></div></div><p>这里根据 <code class="language-plaintext highlighter-rouge">options</code> 是否强制刷新，如果强制刷新那么直接走网络下载并缓存的方法，否则先去缓存中获取图片然后在回调 <code class="language-plaintext highlighter-rouge">completionHandler</code> 里去添加图片 ***</p><h4 id="safeasync">safeAsync</h4><p>回调里跟 <code class="language-plaintext highlighter-rouge">SDWebImage</code> 一样同样有个 <code class="language-plaintext highlighter-rouge">safeAsync</code></p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+</pre><td class="rouge-code"><pre><span class="kt">DispatchQueue</span><span class="o">.</span><span class="n">main</span><span class="o">.</span><span class="n">safeAsync</span> <span class="p">{</span>
+    <span class="o">...</span>
+    <span class="n">strongBase</span><span class="o">.</span><span class="n">image</span> <span class="o">=</span> <span class="n">image</span>
+    <span class="o">...</span>
+<span class="p">}</span>
+</pre></table></code></div></div><p>这个 <code class="language-plaintext highlighter-rouge">safeAsync</code> 是个 <code class="language-plaintext highlighter-rouge">DispatchQueue</code> 的扩展</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+</pre><td class="rouge-code"><pre><span class="c1">// This method will dispatch the `block` to self.</span>
+<span class="c1">// If `self` is the main queue, and current thread is main thread, the block</span>
+<span class="c1">// will be invoked immediately instead of being dispatched.</span>
+<span class="kd">func</span> <span class="nf">safeAsync</span><span class="p">(</span><span class="n">_</span> <span class="nv">block</span><span class="p">:</span> <span class="kd">@escaping</span> <span class="p">()</span><span class="o">-&gt;</span><span class="p">())</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="k">self</span> <span class="o">===</span> <span class="kt">DispatchQueue</span><span class="o">.</span><span class="n">main</span> <span class="o">&amp;&amp;</span> <span class="kt">Thread</span><span class="o">.</span><span class="n">isMainThread</span> <span class="p">{</span>
+        <span class="nf">block</span><span class="p">()</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+        <span class="n">async</span> <span class="p">{</span> <span class="nf">block</span><span class="p">()</span> <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></table></code></div></div><p>目的也很明确保证图像的绘制在主线程完成</p><h3 id="kingfishermanager">KingfisherManager</h3><p>刚才提到了获取图片的方法就是 <code class="language-plaintext highlighter-rouge">KingfisherManager</code> 调用的，它是一个全局唯一的单例它协调 <code class="language-plaintext highlighter-rouge">ImageDownloader</code> 以及 <code class="language-plaintext highlighter-rouge">ImageCache</code> 来进行图片的获取。 ***</p><h4 id="downloadandcacheimage">downloadAndCacheImage</h4><p>首先说下载并缓存，如果在获取图片的 <code class="language-plaintext highlighter-rouge">options</code> 里策略选择了 <code class="language-plaintext highlighter-rouge">forceRefresh</code> 那么 <code class="language-plaintext highlighter-rouge">KingfisherManager</code> 会率先调用</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+</pre><td class="rouge-code"><pre><span class="kd">func</span> <span class="nf">downloadAndCacheImage</span><span class="p">(</span><span class="n">with</span> <span class="nv">url</span><span class="p">:</span> <span class="kt">URL</span><span class="p">,</span>
+                             <span class="n">forKey</span> <span class="nv">key</span><span class="p">:</span> <span class="kt">String</span><span class="p">,</span>
+                      <span class="nv">retrieveImageTask</span><span class="p">:</span> <span class="kt">RetrieveImageTask</span><span class="p">,</span>
+                          <span class="nv">progressBlock</span><span class="p">:</span> <span class="kt">DownloadProgressBlock</span><span class="p">?,</span>
+                      <span class="nv">completionHandler</span><span class="p">:</span> <span class="kt">CompletionHandler</span><span class="p">?,</span>
+                                <span class="nv">options</span><span class="p">:</span> <span class="kt">KingfisherOptionsInfo</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">RetrieveImageDownloadTask</span><span class="p">?</span>
+</pre></table></code></div></div><p>在这个方法的回调里先是进行错误判断，如果 <code class="language-plaintext highlighter-rouge">url</code> 下载这边失败了就尝试从缓存中加载图片</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+</pre><td class="rouge-code"><pre><span class="k">if</span> <span class="k">let</span> <span class="nv">error</span> <span class="o">=</span> <span class="n">error</span><span class="p">,</span> <span class="n">error</span><span class="o">.</span><span class="n">code</span> <span class="o">==</span> <span class="kt">KingfisherError</span><span class="o">.</span><span class="n">notModified</span><span class="o">.</span><span class="n">rawValue</span> <span class="p">{</span>
+    <span class="c1">// Not modified. Try to find the image from cache.</span>
+    <span class="c1">// (The image should be in cache. It should be guaranteed by the framework users.)</span>
+    <span class="n">targetCache</span><span class="o">.</span><span class="nf">retrieveImage</span><span class="p">(</span><span class="nv">forKey</span><span class="p">:</span> <span class="n">key</span><span class="p">,</span> <span class="nv">options</span><span class="p">:</span> <span class="n">options</span><span class="p">,</span> <span class="nv">completionHandler</span><span class="p">:</span> <span class="p">{</span> <span class="p">(</span><span class="n">cacheImage</span><span class="p">,</span> <span class="n">cacheType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Void</span> <span class="k">in</span>
+        <span class="nf">completionHandler</span><span class="p">?(</span><span class="n">cacheImage</span><span class="p">,</span> <span class="kc">nil</span><span class="p">,</span> <span class="n">cacheType</span><span class="p">,</span> <span class="n">url</span><span class="p">)</span>
+    <span class="p">})</span>
+    <span class="k">return</span>
+<span class="p">}</span>
+</pre></table></code></div></div><p>网络获取图片成功之后就会按照 <code class="language-plaintext highlighter-rouge">options</code> 调用下面方法</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+</pre><td class="rouge-code"><pre><span class="kd">open</span> <span class="kd">func</span> <span class="nf">store</span><span class="p">(</span><span class="n">_</span> <span class="nv">image</span><span class="p">:</span> <span class="kt">Image</span><span class="p">,</span>
+                      <span class="nv">original</span><span class="p">:</span> <span class="kt">Data</span><span class="p">?</span> <span class="o">=</span> <span class="kc">nil</span><span class="p">,</span>
+                      <span class="n">forKey</span> <span class="nv">key</span><span class="p">:</span> <span class="kt">String</span><span class="p">,</span>
+                      <span class="n">processorIdentifier</span> <span class="nv">identifier</span><span class="p">:</span> <span class="kt">String</span> <span class="o">=</span> <span class="s">""</span><span class="p">,</span>
+                      <span class="n">cacheSerializer</span> <span class="nv">serializer</span><span class="p">:</span> <span class="kt">CacheSerializer</span> <span class="o">=</span> <span class="kt">DefaultCacheSerializer</span><span class="o">.</span><span class="k">default</span><span class="p">,</span>
+                      <span class="nv">toDisk</span><span class="p">:</span> <span class="kt">Bool</span> <span class="o">=</span> <span class="kc">true</span><span class="p">,</span>
+                      <span class="nv">completionHandler</span><span class="p">:</span> <span class="p">(()</span> <span class="o">-&gt;</span> <span class="kt">Void</span><span class="p">)?</span> <span class="o">=</span> <span class="kc">nil</span><span class="p">)</span>
+</pre></table></code></div></div><p>按照喵神的注释</p><blockquote><p>Store an image to cache. It will be saved to both memory and disk. It is an async operation.</p></blockquote><p>这是一个异步操作，没有什么更多要解释的。值得一提的是，这里储存参数有一个<code class="language-plaintext highlighter-rouge">original</code>这个是Data格式的，这里处理是为了控制磁盘的大小，喵神建议大家为了磁盘更好的储存性能尽量提供<code class="language-plaintext highlighter-rouge">original</code>。 ***</p><h4 id="trytoretrieveimagefromcach">tryToRetrieveImageFromCach</h4><p>如果没有强制要求更新，都是首先去缓存中查找图片的，也就是先走下面这个方法</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+</pre><td class="rouge-code"><pre><span class="kd">func</span> <span class="nf">tryToRetrieveImageFromCache</span><span class="p">(</span><span class="n">forKey</span> <span class="nv">key</span><span class="p">:</span> <span class="kt">String</span><span class="p">,</span>
+                                       <span class="n">with</span> <span class="nv">url</span><span class="p">:</span> <span class="kt">URL</span><span class="p">,</span>
+                              <span class="nv">retrieveImageTask</span><span class="p">:</span> <span class="kt">RetrieveImageTask</span><span class="p">,</span>
+                                  <span class="nv">progressBlock</span><span class="p">:</span> <span class="kt">DownloadProgressBlock</span><span class="p">?,</span>
+                              <span class="nv">completionHandler</span><span class="p">:</span> <span class="kt">CompletionHandler</span><span class="p">?,</span>
+                                        <span class="nv">options</span><span class="p">:</span> <span class="kt">KingfisherOptionsInfo</span><span class="p">)</span>
+</pre></table></code></div></div><p>这个方法里定义了一个回调</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+</pre><td class="rouge-code"><pre><span class="k">let</span> <span class="nv">diskTaskCompletionHandler</span><span class="p">:</span> <span class="kt">CompletionHandler</span> <span class="o">=</span> <span class="p">{</span> <span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">error</span><span class="p">,</span> <span class="n">cacheType</span><span class="p">,</span> <span class="n">imageURL</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Void</span> <span class="k">in</span>
+            <span class="nf">completionHandler</span><span class="p">?(</span><span class="n">image</span><span class="p">,</span> <span class="n">error</span><span class="p">,</span> <span class="n">cacheType</span><span class="p">,</span> <span class="n">imageURL</span><span class="p">)</span>
+<span class="p">}</span>
+</pre></table></code></div></div><p>然后调用方法</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+</pre><td class="rouge-code"><pre><span class="kd">func</span> <span class="nf">retrieveImage</span><span class="p">(</span><span class="n">forKey</span> <span class="nv">key</span><span class="p">:</span> <span class="kt">String</span><span class="p">,</span>
+                               <span class="nv">options</span><span class="p">:</span> <span class="kt">KingfisherOptionsInfo</span><span class="p">?,</span>
+                     <span class="nv">completionHandler</span><span class="p">:</span> <span class="p">((</span><span class="kt">Image</span><span class="p">?,</span> <span class="kt">CacheType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Void</span><span class="p">)?)</span> <span class="o">-&gt;</span> <span class="kt">RetrieveImageDiskTask</span><span class="p">?</span>
+</pre></table></code></div></div><p>首先在缓存中查找这张图片如果找到了就直接闭包返回。</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+</pre><td class="rouge-code"><pre><span class="k">if</span> <span class="n">image</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+    <span class="nf">diskTaskCompletionHandler</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="kc">nil</span><span class="p">,</span> <span class="n">cacheType</span><span class="p">,</span> <span class="n">url</span><span class="p">)</span>
+    <span class="k">return</span>
+<span class="p">}</span>
+</pre></table></code></div></div><p>如果没找到，但是 <code class="language-plaintext highlighter-rouge">options</code> 使用的是默认 <code class="language-plaintext highlighter-rouge">processor</code> 就还走 <code class="language-plaintext highlighter-rouge">downloadAndCacheImage</code> 去下载。</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+</pre><td class="rouge-code"><pre><span class="k">let</span> <span class="nv">processor</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">processor</span>
+    <span class="k">guard</span> <span class="n">processor</span> <span class="o">!=</span> <span class="kt">DefaultImageProcessor</span><span class="o">.</span><span class="k">default</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="nf">handleNoCache</span><span class="p">()</span>
+    <span class="k">return</span>
+<span class="p">}</span>
+</pre></table></code></div></div><p>这个 <code class="language-plaintext highlighter-rouge">handleNoCache</code> 方法就是校验一下是否策略是只从缓存取并不下载，如果是就返回未找到的 <code class="language-plaintext highlighter-rouge">error</code>，不是就下载。 这个 <code class="language-plaintext highlighter-rouge">processor</code> 解释一下，它的作用是把下载完成的data数据转换成图片。</p><p>最后如果 <code class="language-plaintext highlighter-rouge">processor</code> 也不是默认的了，那么还有一次不下载图片的机会，<code class="language-plaintext highlighter-rouge">kingfisher</code> 还会在缓存中查找原图片是否已经存在了，如果存在了就把 <code class="language-plaintext highlighter-rouge">processor</code> 赋给这个图片。</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+</pre><td class="rouge-code"><pre><span class="k">let</span> <span class="nv">originalCache</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">originalCache</span> <span class="p">??</span> <span class="n">targetCache</span>
+<span class="k">let</span> <span class="nv">optionsWithoutProcessor</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="nf">removeAllMatchesIgnoringAssociatedValue</span><span class="p">(</span><span class="o">.</span><span class="nf">processor</span><span class="p">(</span><span class="n">processor</span><span class="p">))</span>
+<span class="n">originalCache</span><span class="o">.</span><span class="nf">retrieveImage</span><span class="p">(</span><span class="nv">forKey</span><span class="p">:</span> <span class="n">key</span><span class="p">,</span> <span class="nv">options</span><span class="p">:</span> <span class="n">optionsWithoutProcessor</span><span class="p">)</span> <span class="p">{</span> <span class="n">image</span><span class="p">,</span> <span class="n">cacheType</span> <span class="k">in</span>
+    <span class="c1">// If we found the original image, there is no need to download it again.</span>
+    <span class="c1">// We could just apply processor to it now.</span>
+    <span class="k">guard</span> <span class="k">let</span> <span class="nv">image</span> <span class="o">=</span> <span class="n">image</span> <span class="k">else</span> <span class="p">{</span>
+        <span class="nf">handleNoCache</span><span class="p">()</span>
+        <span class="k">return</span>
+    <span class="p">}</span>
+
+    <span class="n">processQueue</span><span class="o">.</span><span class="n">async</span> <span class="p">{</span>
+        <span class="k">guard</span> <span class="k">let</span> <span class="nv">processedImage</span> <span class="o">=</span> <span class="n">processor</span><span class="o">.</span><span class="nf">process</span><span class="p">(</span><span class="nv">item</span><span class="p">:</span> <span class="o">.</span><span class="nf">image</span><span class="p">(</span><span class="n">image</span><span class="p">),</span> <span class="nv">options</span><span class="p">:</span> <span class="n">options</span><span class="p">)</span> <span class="k">else</span> <span class="p">{</span>
+        <span class="n">options</span><span class="o">.</span><span class="n">callbackDispatchQueue</span><span class="o">.</span><span class="n">safeAsync</span> <span class="p">{</span>
+            <span class="nf">diskTaskCompletionHandler</span><span class="p">(</span><span class="kc">nil</span><span class="p">,</span> <span class="kc">nil</span><span class="p">,</span> <span class="o">.</span><span class="k">none</span><span class="p">,</span> <span class="n">url</span><span class="p">)</span>
+        <span class="p">}</span>
+        <span class="k">return</span>
+    <span class="p">}</span>
+    <span class="n">targetCache</span><span class="o">.</span><span class="nf">store</span><span class="p">(</span><span class="n">processedImage</span><span class="p">,</span>
+                      <span class="nv">original</span><span class="p">:</span> <span class="kc">nil</span><span class="p">,</span>
+                      <span class="nv">forKey</span><span class="p">:</span> <span class="n">key</span><span class="p">,</span>
+                      <span class="nv">processorIdentifier</span><span class="p">:</span><span class="n">options</span><span class="o">.</span><span class="n">processor</span><span class="o">.</span><span class="n">identifier</span><span class="p">,</span>
+                      <span class="nv">cacheSerializer</span><span class="p">:</span> <span class="n">options</span><span class="o">.</span><span class="n">cacheSerializer</span><span class="p">,</span>
+                      <span class="nv">toDisk</span><span class="p">:</span> <span class="o">!</span><span class="n">options</span><span class="o">.</span><span class="n">cacheMemoryOnly</span><span class="p">,</span>
+                      <span class="nv">completionHandler</span><span class="p">:</span> <span class="p">{</span>
+                          <span class="k">guard</span> <span class="n">options</span><span class="o">.</span><span class="n">waitForCache</span> <span class="k">else</span> <span class="p">{</span> <span class="k">return</span> <span class="p">}</span>
+
+                          <span class="k">let</span> <span class="nv">cacheType</span> <span class="o">=</span> <span class="n">targetCache</span><span class="o">.</span><span class="nf">imageCachedType</span><span class="p">(</span><span class="nv">forKey</span><span class="p">:</span> <span class="n">key</span><span class="p">,</span> <span class="nv">processorIdentifier</span><span class="p">:</span> <span class="n">options</span><span class="o">.</span><span class="n">processor</span><span class="o">.</span><span class="n">identifier</span><span class="p">)</span>
+                              <span class="n">options</span><span class="o">.</span><span class="n">callbackDispatchQueue</span><span class="o">.</span><span class="n">safeAsync</span> <span class="p">{</span>
+                                  <span class="nf">diskTaskCompletionHandler</span><span class="p">(</span><span class="n">processedImage</span><span class="p">,</span> <span class="kc">nil</span><span class="p">,</span> <span class="n">cacheType</span><span class="p">,</span> <span class="n">url</span><span class="p">)</span>
+                              <span class="p">}</span>
+    <span class="p">})</span>
+
+    <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">waitForCache</span> <span class="o">==</span> <span class="kc">false</span> <span class="p">{</span>
+        <span class="n">options</span><span class="o">.</span><span class="n">callbackDispatchQueue</span><span class="o">.</span><span class="n">safeAsync</span> <span class="p">{</span>
+            <span class="nf">diskTaskCompletionHandler</span><span class="p">(</span><span class="n">processedImage</span><span class="p">,</span> <span class="kc">nil</span><span class="p">,</span> <span class="o">.</span><span class="k">none</span><span class="p">,</span> <span class="n">url</span><span class="p">)</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></table></code></div></div><h3 id="imagecache">ImageCache</h3><p>缓存图片的核心类喵神是这样注释的：</p><blockquote><p>/// <code class="language-plaintext highlighter-rouge">ImageCache</code> represents both the memory and disk cache system of Kingfisher. /// While a default image cache object will be used if you prefer the extension methods of Kingfisher, /// you can create your own cache object and configure it as your need. You could use an <code class="language-plaintext highlighter-rouge">ImageCache</code> /// object to manipulate memory and disk cache for Kingfisher.</p></blockquote><p>它维护了一个内存缓存和一个磁盘缓存，磁盘缓存支持自己配置。 ***</p><h4 id="缓存获取图片">缓存获取图片</h4><p>存方法之前提到了，删除方法也差不多同样是一个异步操作，不详细说了。说一下缓存获取图片方法。</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+</pre><td class="rouge-code"><pre><span class="kd">func</span> <span class="nf">retrieveImage</span><span class="p">(</span><span class="n">forKey</span> <span class="nv">key</span><span class="p">:</span> <span class="kt">String</span><span class="p">,</span>
+                   <span class="nv">options</span><span class="p">:</span> <span class="kt">KingfisherOptionsInfo</span><span class="p">?,</span>
+                   <span class="nv">completionHandler</span><span class="p">:</span> <span class="p">((</span><span class="kt">Image</span><span class="p">?,</span> <span class="kt">CacheType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Void</span><span class="p">)?)</span> <span class="o">-&gt;</span> <span class="kt">RetrieveImageDiskTask</span><span class="p">?</span>
+</pre></table></code></div></div><p>这里传入图片的 <code class="language-plaintext highlighter-rouge">key</code> 作为查询依据，<code class="language-plaintext highlighter-rouge">options</code> 作为查询策略，默认情况是先从内存缓存查找，如果规定了只从缓存查找并且缓存里没有就返回没找到。</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+</pre><td class="rouge-code"><pre><span class="k">if</span> <span class="k">let</span> <span class="nv">image</span> <span class="o">=</span> <span class="k">self</span><span class="o">.</span><span class="nf">retrieveImageInMemoryCache</span><span class="p">(</span><span class="nv">forKey</span><span class="p">:</span> <span class="n">key</span><span class="p">,</span> <span class="nv">options</span><span class="p">:</span> <span class="n">options</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">options</span><span class="o">.</span><span class="n">callbackDispatchQueue</span><span class="o">.</span><span class="n">safeAsync</span> <span class="p">{</span>
+        <span class="nf">completionHandler</span><span class="p">(</span><span class="n">imageModifier</span><span class="o">.</span><span class="nf">modify</span><span class="p">(</span><span class="n">image</span><span class="p">),</span> <span class="o">.</span><span class="n">memory</span><span class="p">)</span>
+    <span class="p">}</span>
+<span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">fromMemoryCacheOrRefresh</span> <span class="p">{</span> <span class="c1">// Only allows to get images from memory cache.</span>
+    <span class="n">options</span><span class="o">.</span><span class="n">callbackDispatchQueue</span><span class="o">.</span><span class="n">safeAsync</span> <span class="p">{</span>
+        <span class="nf">completionHandler</span><span class="p">(</span><span class="kc">nil</span><span class="p">,</span> <span class="o">.</span><span class="k">none</span><span class="p">)</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></table></code></div></div><p>缓存没有就去磁盘查找</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+</pre><td class="rouge-code"><pre><span class="k">var</span> <span class="nv">sSelf</span><span class="p">:</span> <span class="kt">ImageCache</span><span class="o">!</span> <span class="o">=</span> <span class="k">self</span>
+<span class="n">block</span> <span class="o">=</span> <span class="kt">DispatchWorkItem</span><span class="p">(</span><span class="nv">block</span><span class="p">:</span> <span class="p">{</span>
+    <span class="c1">// Begin to load image from disk</span>
+    <span class="k">if</span> <span class="k">let</span> <span class="nv">image</span> <span class="o">=</span> <span class="n">sSelf</span><span class="o">.</span><span class="nf">retrieveImageInDiskCache</span><span class="p">(</span><span class="nv">forKey</span><span class="p">:</span> <span class="n">key</span><span class="p">,</span> <span class="nv">options</span><span class="p">:</span> <span class="n">options</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">backgroundDecode</span> <span class="p">{</span>
+            <span class="n">sSelf</span><span class="o">.</span><span class="n">processQueue</span><span class="o">.</span><span class="n">async</span> <span class="p">{</span>
+
+                <span class="k">let</span> <span class="nv">result</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">kf</span><span class="o">.</span><span class="n">decoded</span>
+                            
+                <span class="n">sSelf</span><span class="o">.</span><span class="nf">store</span><span class="p">(</span><span class="n">result</span><span class="p">,</span>
+                            <span class="nv">forKey</span><span class="p">:</span> <span class="n">key</span><span class="p">,</span>
+                            <span class="nv">processorIdentifier</span><span class="p">:</span> <span class="n">options</span><span class="o">.</span><span class="n">processor</span><span class="o">.</span><span class="n">identifier</span><span class="p">,</span>
+                            <span class="nv">cacheSerializer</span><span class="p">:</span> <span class="n">options</span><span class="o">.</span><span class="n">cacheSerializer</span><span class="p">,</span>
+                            <span class="nv">toDisk</span><span class="p">:</span> <span class="kc">false</span><span class="p">,</span>
+                            <span class="nv">completionHandler</span><span class="p">:</span> <span class="kc">nil</span><span class="p">)</span>
+                            <span class="n">options</span><span class="o">.</span><span class="n">callbackDispatchQueue</span><span class="o">.</span><span class="n">safeAsync</span> <span class="p">{</span>
+                                <span class="nf">completionHandler</span><span class="p">(</span><span class="n">imageModifier</span><span class="o">.</span><span class="nf">modify</span><span class="p">(</span><span class="n">result</span><span class="p">),</span> <span class="o">.</span><span class="n">disk</span><span class="p">)</span>
+                                <span class="n">sSelf</span> <span class="o">=</span> <span class="kc">nil</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+            <span class="n">sSelf</span><span class="o">.</span><span class="nf">store</span><span class="p">(</span><span class="n">image</span><span class="p">,</span>
+                        <span class="nv">forKey</span><span class="p">:</span> <span class="n">key</span><span class="p">,</span>
+                        <span class="nv">processorIdentifier</span><span class="p">:</span> <span class="n">options</span><span class="o">.</span><span class="n">processor</span><span class="o">.</span><span class="n">identifier</span><span class="p">,</span>
+                        <span class="nv">cacheSerializer</span><span class="p">:</span> <span class="n">options</span><span class="o">.</span><span class="n">cacheSerializer</span><span class="p">,</span>
+                        <span class="nv">toDisk</span><span class="p">:</span> <span class="kc">false</span><span class="p">,</span>
+                        <span class="nv">completionHandler</span><span class="p">:</span> <span class="kc">nil</span>
+            <span class="p">)</span>
+            <span class="n">options</span><span class="o">.</span><span class="n">callbackDispatchQueue</span><span class="o">.</span><span class="n">safeAsync</span> <span class="p">{</span>
+                <span class="nf">completionHandler</span><span class="p">(</span><span class="n">imageModifier</span><span class="o">.</span><span class="nf">modify</span><span class="p">(</span><span class="n">image</span><span class="p">),</span> <span class="o">.</span><span class="n">disk</span><span class="p">)</span>
+                <span class="n">sSelf</span> <span class="o">=</span> <span class="kc">nil</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+        <span class="c1">// No image found from either memory or disk</span>
+        <span class="c1">// 没找到就返回 nil</span>
+        <span class="n">options</span><span class="o">.</span><span class="n">callbackDispatchQueue</span><span class="o">.</span><span class="n">safeAsync</span> <span class="p">{</span>
+            <span class="nf">completionHandler</span><span class="p">(</span><span class="kc">nil</span><span class="p">,</span> <span class="o">.</span><span class="k">none</span><span class="p">)</span>
+            <span class="n">sSelf</span> <span class="o">=</span> <span class="kc">nil</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">})</span>
+            
+<span class="n">sSelf</span><span class="o">.</span><span class="n">ioQueue</span><span class="o">.</span><span class="nf">async</span><span class="p">(</span><span class="nv">execute</span><span class="p">:</span> <span class="n">block</span><span class="o">!</span><span class="p">)</span>
+</pre></table></code></div></div><hr /><h4 id="过期清理">过期清理</h4><p>还有清除内存缓存，清除磁盘缓存方法，这里都不详细说了，说一下过期磁盘缓存清理。先用下面这个方法获取需要删除的 URL 数组，磁盘缓存大小和缓存文件</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+</pre><td class="rouge-code"><pre><span class="kd">fileprivate</span> <span class="kd">func</span> <span class="nf">travelCachedFiles</span><span class="p">(</span><span class="nv">onlyForCacheSize</span><span class="p">:</span> <span class="kt">Bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="p">(</span><span class="nv">urlsToDelete</span><span class="p">:</span> <span class="p">[</span><span class="kt">URL</span><span class="p">],</span> <span class="nv">diskCacheSize</span><span class="p">:</span> <span class="kt">UInt</span><span class="p">,</span> <span class="nv">cachedFiles</span><span class="p">:</span> <span class="p">[</span><span class="kt">URL</span><span class="p">:</span> <span class="kt">URLResourceValues</span><span class="p">])</span>
+</pre></table></code></div></div><p>然后根据数组删除一下</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+</pre><td class="rouge-code"><pre><span class="k">for</span> <span class="n">fileURL</span> <span class="k">in</span> <span class="kt">URLsToDelete</span> <span class="p">{</span>
+    <span class="k">do</span> <span class="p">{</span>
+        <span class="k">try</span> <span class="k">self</span><span class="o">.</span><span class="n">fileManager</span><span class="o">.</span><span class="nf">removeItem</span><span class="p">(</span><span class="nv">at</span><span class="p">:</span> <span class="n">fileURL</span><span class="p">)</span>
+    <span class="p">}</span> <span class="k">catch</span> <span class="n">_</span> <span class="p">{</span> <span class="p">}</span>
+<span class="p">}</span>
+</pre></table></code></div></div><p>如果设定了 <code class="language-plaintext highlighter-rouge">maxDiskCacheSize</code> 并且大于 0 并且目前的磁盘缓存大小已经超过了最大值</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+</pre><td class="rouge-code"><pre><span class="c1">// 设定目标size为最大的一半</span>
+<span class="k">let</span> <span class="nv">targetSize</span> <span class="o">=</span> <span class="k">self</span><span class="o">.</span><span class="n">maxDiskCacheSize</span> <span class="o">/</span> <span class="mi">2</span>
+                    
+<span class="c1">// Sort files by last modify date. We want to clean from the oldest files.</span>
+<span class="c1">// 先对文件进行时间排序</span>
+<span class="k">let</span> <span class="nv">sortedFiles</span> <span class="o">=</span> <span class="n">cachedFiles</span><span class="o">.</span><span class="n">keysSortedByValue</span> <span class="p">{</span>
+    <span class="n">resourceValue1</span><span class="p">,</span> <span class="n">resourceValue2</span> <span class="o">-&gt;</span> <span class="kt">Bool</span> <span class="k">in</span>
+                    
+    <span class="k">if</span> <span class="k">let</span> <span class="nv">date1</span> <span class="o">=</span> <span class="n">resourceValue1</span><span class="o">.</span><span class="n">contentAccessDate</span><span class="p">,</span>
+       <span class="k">let</span> <span class="nv">date2</span> <span class="o">=</span> <span class="n">resourceValue2</span><span class="o">.</span><span class="n">contentAccessDate</span>
+       <span class="p">{</span>
+           <span class="k">return</span> <span class="n">date1</span><span class="o">.</span><span class="nf">compare</span><span class="p">(</span><span class="n">date2</span><span class="p">)</span> <span class="o">==</span> <span class="o">.</span><span class="n">orderedAscending</span>
+       <span class="p">}</span>
+                    
+       <span class="c1">// Not valid date information. This should not happen. Just in case.</span>
+       <span class="k">return</span> <span class="kc">true</span>
+    <span class="p">}</span>
+    <span class="c1">// 然后遍历文件数组进行删除，从最老的文件往前删除，直到磁盘缓存空间小于目标空间            </span>
+    <span class="k">for</span> <span class="n">fileURL</span> <span class="k">in</span> <span class="n">sortedFiles</span> <span class="p">{</span>
+                    
+        <span class="k">do</span> <span class="p">{</span>
+            <span class="k">try</span> <span class="k">self</span><span class="o">.</span><span class="n">fileManager</span><span class="o">.</span><span class="nf">removeItem</span><span class="p">(</span><span class="nv">at</span><span class="p">:</span> <span class="n">fileURL</span><span class="p">)</span>
+        <span class="p">}</span> <span class="k">catch</span> <span class="p">{</span> <span class="p">}</span>
+                        
+        <span class="kt">URLsToDelete</span><span class="o">.</span><span class="nf">append</span><span class="p">(</span><span class="n">fileURL</span><span class="p">)</span>
+                    
+        <span class="k">if</span> <span class="k">let</span> <span class="nv">fileSize</span> <span class="o">=</span> <span class="n">cachedFiles</span><span class="p">[</span><span class="n">fileURL</span><span class="p">]?</span><span class="o">.</span><span class="n">totalFileAllocatedSize</span> <span class="p">{</span>
+            <span class="n">diskCacheSize</span> <span class="o">-=</span> <span class="kt">UInt</span><span class="p">(</span><span class="n">fileSize</span><span class="p">)</span>
+        <span class="p">}</span>
+                    
+        <span class="k">if</span> <span class="n">diskCacheSize</span> <span class="o">&lt;</span> <span class="n">targetSize</span> <span class="p">{</span>
+            <span class="k">break</span>
+<span class="p">}</span>
+</pre></table></code></div></div><p>最后删除的文件数如果大于 0 就会发一个通知</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+</pre><td class="rouge-code"><pre><span class="kt">DispatchQueue</span><span class="o">.</span><span class="n">main</span><span class="o">.</span><span class="n">async</span> <span class="p">{</span>
+                
+    <span class="k">if</span> <span class="kt">URLsToDelete</span><span class="o">.</span><span class="n">count</span> <span class="o">!=</span> <span class="mi">0</span> <span class="p">{</span>
+        <span class="k">let</span> <span class="nv">cleanedHashes</span> <span class="o">=</span> <span class="kt">URLsToDelete</span><span class="o">.</span><span class="n">map</span> <span class="p">{</span> <span class="nv">$0</span><span class="o">.</span><span class="n">lastPathComponent</span> <span class="p">}</span>
+        <span class="kt">NotificationCenter</span><span class="o">.</span><span class="k">default</span><span class="o">.</span><span class="nf">post</span><span class="p">(</span><span class="nv">name</span><span class="p">:</span> <span class="o">.</span><span class="kt">KingfisherDidCleanDiskCache</span><span class="p">,</span> <span class="nv">object</span><span class="p">:</span> <span class="k">self</span><span class="p">,</span> <span class="nv">userInfo</span><span class="p">:</span> <span class="p">[</span><span class="kt">KingfisherDiskCacheCleanedHashKey</span><span class="p">:</span> <span class="n">cleanedHashes</span><span class="p">])</span>
+                <span class="p">}</span>
+                
+        <span class="nf">handler</span><span class="p">?()</span>
+<span class="p">}</span>
+</pre></table></code></div></div><p>喵神对这个通知的注释</p><blockquote><p>This notification will be sent when the disk cache got cleaned either there are cached files expired or the total size exceeding the max allowed size. The manually invoking of <code class="language-plaintext highlighter-rouge">clearDiskCache</code> method will not trigger this notification. The <code class="language-plaintext highlighter-rouge">object</code> of this notification is the <code class="language-plaintext highlighter-rouge">ImageCache</code> object which sends the notification. A list of removed hashes (files) could be retrieved by accessing the array under <code class="language-plaintext highlighter-rouge">KingfisherDiskCacheCleanedHashKey</code> key in <code class="language-plaintext highlighter-rouge">userInfo</code> of the notification object you received. By checking the array, you could know the hash codes of files are removed. The main purpose of this notification is supplying a chance to maintain some necessary information on the cached files. See <a href="https://github.com/onevcat/Kingfisher/wiki/How-to-implement-ETag-based-304-(Not-Modified)-handling-in-Kingfisher">this wiki</a> for a use case on it.</p></blockquote><p>大概就是说这个通知在磁盘缓存过期或者太大了自动清理时候会发出，而 <code class="language-plaintext highlighter-rouge">clearDiskCache</code> 这个方法并不会出发。通知中的 <code class="language-plaintext highlighter-rouge">userInfo</code> 带着被移除的文件哈希值。从这个数组中你能获取被删除文件的哈希值。然后这个通知的主要目的是处理服务器的 <code class="language-plaintext highlighter-rouge">304 Not Modified</code>。因为 <code class="language-plaintext highlighter-rouge">Kingfisher</code> 的缓存机制是基于 <code class="language-plaintext highlighter-rouge">URL</code>，但是有时 <code class="language-plaintext highlighter-rouge">URL</code> 没变但是图片变了，比如用户头像。你当然可以设置强制刷新，但这不是好方法，尤其是重复下载同一个头像，所以这个通知机制就解决了服务器 304 的问题。具体见 <a href="https://github.com/onevcat/Kingfisher/wiki/How-to-implement-ETag-based-304-(Not-Modified)-handling-in-Kingfisher">this wiki</a></p><h3 id="imagedownloader">ImageDownloader</h3><blockquote><p><code class="language-plaintext highlighter-rouge">ImageDownloader</code> represents a downloading manager for requesting the image with a URL from server.</p></blockquote><h4 id="imagefetchload">ImageFetchLoad</h4><p>不多赘述，直接分析。首先定义了一个 <code class="language-plaintext highlighter-rouge">ImageFetchLoad</code> 类</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+</pre><td class="rouge-code"><pre><span class="kd">class</span> <span class="kt">ImageFetchLoad</span> <span class="p">{</span>
+    <span class="k">var</span> <span class="nv">contents</span> <span class="o">=</span> <span class="p">[(</span><span class="nv">callback</span><span class="p">:</span> <span class="kt">CallbackPair</span><span class="p">,</span> <span class="nv">options</span><span class="p">:</span> <span class="kt">KingfisherOptionsInfo</span><span class="p">)]()</span>
+    <span class="k">var</span> <span class="nv">responseData</span> <span class="o">=</span> <span class="kt">NSMutableData</span><span class="p">()</span>
+
+    <span class="k">var</span> <span class="nv">downloadTaskCount</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">var</span> <span class="nv">downloadTask</span><span class="p">:</span> <span class="kt">RetrieveImageDownloadTask</span><span class="p">?</span>
+    <span class="k">var</span> <span class="nv">cancelSemaphore</span><span class="p">:</span> <span class="kt">DispatchSemaphore</span><span class="p">?</span>
+<span class="p">}</span>
+</pre></table></code></div></div><p>这个类包含一些属性，都挺容易理解的 ***</p><h4 id="downloadimage">downloadImage</h4><p>主方法，也是对外回调下载数据的方法:</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+</pre><td class="rouge-code"><pre><span class="kd">open</span> <span class="kd">func</span> <span class="nf">downloadImage</span><span class="p">(</span><span class="n">with</span> <span class="nv">url</span><span class="p">:</span> <span class="kt">URL</span><span class="p">,</span>
+                       <span class="nv">retrieveImageTask</span><span class="p">:</span> <span class="kt">RetrieveImageTask</span><span class="p">?</span> <span class="o">=</span> <span class="kc">nil</span><span class="p">,</span>
+                       <span class="nv">options</span><span class="p">:</span> <span class="kt">KingfisherOptionsInfo</span><span class="p">?</span> <span class="o">=</span> <span class="kc">nil</span><span class="p">,</span>
+                       <span class="nv">progressBlock</span><span class="p">:</span> <span class="kt">ImageDownloaderProgressBlock</span><span class="p">?</span> <span class="o">=</span> <span class="kc">nil</span><span class="p">,</span>
+                       <span class="nv">completionHandler</span><span class="p">:</span> <span class="kt">ImageDownloaderCompletionHandler</span><span class="p">?</span> <span class="o">=</span> <span class="kc">nil</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">RetrieveImageDownloadTask</span><span class="p">?</span>
+</pre></table></code></div></div><p>首先判断 <code class="language-plaintext highlighter-rouge">retrieveImageTask</code> 是否为空或者已经取消，如果为空或已经取消就返回 nil 然后因为 <code class="language-plaintext highlighter-rouge">url</code> 要作为 <code class="language-plaintext highlighter-rouge">load key</code>, 所以在开始下载之前还要获取一下最终 <code class="language-plaintext highlighter-rouge">url</code> 并判断是否改成 <code class="language-plaintext highlighter-rouge">nil</code> 了</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+</pre><td class="rouge-code"><pre><span class="c1">// We need to set the URL as the load key. So before setup progress, we need to ask the `requestModifier` for a final URL.</span>
+<span class="k">var</span> <span class="nv">request</span> <span class="o">=</span> <span class="kt">URLRequest</span><span class="p">(</span><span class="nv">url</span><span class="p">:</span> <span class="n">url</span><span class="p">,</span> <span class="nv">cachePolicy</span><span class="p">:</span> <span class="o">.</span><span class="n">reloadIgnoringLocalCacheData</span><span class="p">,</span> <span class="nv">timeoutInterval</span><span class="p">:</span> <span class="n">timeout</span><span class="p">)</span>
+<span class="n">request</span><span class="o">.</span><span class="n">httpShouldUsePipelining</span> <span class="o">=</span> <span class="n">requestsUsePipelining</span>
+
+<span class="k">if</span> <span class="k">let</span> <span class="nv">modifier</span> <span class="o">=</span> <span class="n">options</span><span class="p">?</span><span class="o">.</span><span class="n">modifier</span> <span class="p">{</span>
+    <span class="k">guard</span> <span class="k">let</span> <span class="nv">r</span> <span class="o">=</span> <span class="n">modifier</span><span class="o">.</span><span class="nf">modified</span><span class="p">(</span><span class="nv">for</span><span class="p">:</span> <span class="n">request</span><span class="p">)</span> <span class="k">else</span> <span class="p">{</span>
+        <span class="nf">completionHandler</span><span class="p">?(</span><span class="kc">nil</span><span class="p">,</span> <span class="kt">NSError</span><span class="p">(</span><span class="nv">domain</span><span class="p">:</span> <span class="kt">KingfisherErrorDomain</span><span class="p">,</span> <span class="nv">code</span><span class="p">:</span> <span class="kt">KingfisherError</span><span class="o">.</span><span class="n">downloadCancelledBeforeStarting</span><span class="o">.</span><span class="n">rawValue</span><span class="p">,</span> <span class="nv">userInfo</span><span class="p">:</span> <span class="kc">nil</span><span class="p">),</span> <span class="kc">nil</span><span class="p">,</span> <span class="kc">nil</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">nil</span>
+    <span class="p">}</span>
+    <span class="n">request</span> <span class="o">=</span> <span class="n">r</span>
+<span class="p">}</span>
+        
+<span class="c1">// There is a possibility that request modifier changed the url to `nil` or empty.</span>
+<span class="k">guard</span> <span class="k">let</span> <span class="nv">url</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="o">!</span><span class="n">url</span><span class="o">.</span><span class="n">absoluteString</span><span class="o">.</span><span class="n">isEmpty</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="nf">completionHandler</span><span class="p">?(</span><span class="kc">nil</span><span class="p">,</span> <span class="kt">NSError</span><span class="p">(</span><span class="nv">domain</span><span class="p">:</span> <span class="kt">KingfisherErrorDomain</span><span class="p">,</span> <span class="nv">code</span><span class="p">:</span> <span class="kt">KingfisherError</span><span class="o">.</span><span class="n">invalidURL</span><span class="o">.</span><span class="n">rawValue</span><span class="p">,</span> <span class="nv">userInfo</span><span class="p">:</span> <span class="kc">nil</span><span class="p">),</span> <span class="kc">nil</span><span class="p">,</span> <span class="kc">nil</span><span class="p">)</span>
+    <span class="k">return</span> <span class="kc">nil</span>
+<span class="p">}</span>
+</pre></table></code></div></div><p>然后调用 <code class="language-plaintext highlighter-rouge">setup</code> 方法根据 <code class="language-plaintext highlighter-rouge">url</code> 和 <code class="language-plaintext highlighter-rouge">options</code> 开始生成 <code class="language-plaintext highlighter-rouge">downloadTask</code> 如果同一 <code class="language-plaintext highlighter-rouge">url</code> 一次下载没有完成并不会再发一次下载请求，而是</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+</pre><td class="rouge-code"><pre><span class="n">fetchLoad</span><span class="o">.</span><span class="n">downloadTaskCount</span> <span class="o">+=</span> <span class="mi">1</span>
+</pre></table></code></div></div><p>如果这次下载完成就会调用</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+</pre><td class="rouge-code"><pre><span class="kd">private</span> <span class="kd">func</span> <span class="nf">cleanFetchLoad</span><span class="p">(</span><span class="k">for</span> <span class="nv">url</span><span class="p">:</span> <span class="kt">URL</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">guard</span> <span class="k">let</span> <span class="nv">downloader</span> <span class="o">=</span> <span class="n">downloadHolder</span> <span class="k">else</span> <span class="p">{</span>
+        <span class="k">return</span>
+    <span class="p">}</span>
+
+    <span class="n">downloader</span><span class="o">.</span><span class="n">barrierQueue</span><span class="o">.</span><span class="nf">sync</span><span class="p">(</span><span class="nv">flags</span><span class="p">:</span> <span class="o">.</span><span class="n">barrier</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">downloader</span><span class="o">.</span><span class="n">fetchLoads</span><span class="o">.</span><span class="nf">removeValue</span><span class="p">(</span><span class="nv">forKey</span><span class="p">:</span> <span class="n">url</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">downloader</span><span class="o">.</span><span class="n">fetchLoads</span><span class="o">.</span><span class="n">isEmpty</span> <span class="p">{</span>
+            <span class="n">downloadHolder</span> <span class="o">=</span> <span class="kc">nil</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></table></code></div></div><p>对 <code class="language-plaintext highlighter-rouge">url</code> 对应的 <code class="language-plaintext highlighter-rouge">fetchLoads</code> 进行清除，这样下载就会再次调用</p><p>值得一提的是，喵神这里按功能定义了三个 <code class="language-plaintext highlighter-rouge">DispatchQueue</code></p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+</pre><td class="rouge-code"><pre><span class="k">let</span> <span class="nv">barrierQueue</span><span class="p">:</span> <span class="kt">DispatchQueue</span>
+<span class="k">let</span> <span class="nv">processQueue</span><span class="p">:</span> <span class="kt">DispatchQueue</span>
+<span class="k">let</span> <span class="nv">cancelQueue</span><span class="p">:</span> <span class="kt">DispatchQueue</span>
+</pre></table></code></div></div><p><code class="language-plaintext highlighter-rouge">barrierQueue</code> 的使用都是配合 <code class="language-plaintext highlighter-rouge">barrier</code> 进行的，主要方式是</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+</pre><td class="rouge-code"><pre><span class="n">barrierQueue</span><span class="o">.</span><span class="nf">sync</span><span class="p">(</span><span class="nv">flags</span><span class="p">:</span> <span class="o">.</span><span class="n">barrier</span><span class="p">)</span> <span class="p">{</span> <span class="o">...</span> <span class="p">}</span>
+</pre></table></code></div></div><p>主要是保证对 <code class="language-plaintext highlighter-rouge">fetchLoads</code> 的读写安全。</p><p><code class="language-plaintext highlighter-rouge">processQueue</code> 保证获取到数据后缓存，<code class="language-plaintext highlighter-rouge">data</code> 转<code class="language-plaintext highlighter-rouge">image</code> 等操作不会阻塞主线程</p><p><code class="language-plaintext highlighter-rouge">cancelQueue</code> 的使用结合了 <code class="language-plaintext highlighter-rouge">cancelSemaphore</code> 信号量</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+</pre><td class="rouge-code"><pre><span class="n">cancelQueue</span><span class="o">.</span><span class="n">async</span> <span class="p">{</span>
+    <span class="n">_</span> <span class="o">=</span> <span class="n">fetchLoad</span><span class="o">.</span><span class="n">cancelSemaphore</span><span class="p">?</span><span class="o">.</span><span class="nf">wait</span><span class="p">(</span><span class="nv">timeout</span><span class="p">:</span> <span class="o">.</span><span class="n">distantFuture</span><span class="p">)</span>
+    <span class="n">fetchLoad</span><span class="o">.</span><span class="n">cancelSemaphore</span> <span class="o">=</span> <span class="kc">nil</span>
+    <span class="nf">prepareFetchLoad</span><span class="p">()</span>
+<span class="p">}</span>
+</pre></table></code></div></div><p>当前 url 现在已开始未结束时又来了下载请求就会让后来的开始等待，如果之前的请求失败，才会发起这次的请求</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+</pre><td class="rouge-code"><pre><span class="kd">private</span> <span class="kd">func</span> <span class="nf">callCompletionHandlerFailure</span><span class="p">(</span><span class="nv">error</span><span class="p">:</span> <span class="kt">Error</span><span class="p">,</span> <span class="nv">url</span><span class="p">:</span> <span class="kt">URL</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">guard</span> <span class="k">let</span> <span class="nv">downloader</span> <span class="o">=</span> <span class="n">downloadHolder</span><span class="p">,</span> <span class="k">let</span> <span class="nv">fetchLoad</span> <span class="o">=</span> <span class="n">downloader</span><span class="o">.</span><span class="nf">fetchLoad</span><span class="p">(</span><span class="nv">for</span><span class="p">:</span> <span class="n">url</span><span class="p">)</span> <span class="k">else</span> <span class="p">{</span>
+        <span class="k">return</span>
+    <span class="p">}</span>
+        
+    <span class="c1">// We need to clean the fetch load first, before actually calling completion handler.</span>
+    <span class="nf">cleanFetchLoad</span><span class="p">(</span><span class="nv">for</span><span class="p">:</span> <span class="n">url</span><span class="p">)</span>
+        
+    <span class="k">var</span> <span class="nv">leftSignal</span><span class="p">:</span> <span class="kt">Int</span>
+    <span class="k">repeat</span> <span class="p">{</span>
+        <span class="n">leftSignal</span> <span class="o">=</span> <span class="n">fetchLoad</span><span class="o">.</span><span class="n">cancelSemaphore</span><span class="p">?</span><span class="o">.</span><span class="nf">signal</span><span class="p">()</span> <span class="p">??</span> <span class="mi">0</span>
+    <span class="p">}</span> <span class="k">while</span> <span class="n">leftSignal</span> <span class="o">!=</span> <span class="mi">0</span>
+        
+    <span class="k">for</span> <span class="n">content</span> <span class="k">in</span> <span class="n">fetchLoad</span><span class="o">.</span><span class="n">contents</span> <span class="p">{</span>
+        <span class="n">content</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">callbackDispatchQueue</span><span class="o">.</span><span class="n">safeAsync</span> <span class="p">{</span>
+            <span class="n">content</span><span class="o">.</span><span class="n">callback</span><span class="o">.</span><span class="nf">completionHandler</span><span class="p">?(</span><span class="kc">nil</span><span class="p">,</span> <span class="n">error</span> <span class="k">as</span> <span class="kt">NSError</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="kc">nil</span><span class="p">)</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></table></code></div></div><hr /><h4 id="处理图片">处理图片</h4><p>原始数据完成后调用</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+</pre><td class="rouge-code"><pre><span class="kd">private</span> <span class="kd">func</span> <span class="nf">processImage</span><span class="p">(</span><span class="k">for</span> <span class="nv">task</span><span class="p">:</span> <span class="kt">URLSessionTask</span><span class="p">,</span> <span class="nv">url</span><span class="p">:</span> <span class="kt">URL</span><span class="p">)</span> <span class="p">{</span><span class="o">...</span><span class="p">}</span>
+</pre></table></code></div></div><p>进行图片的处理，<code class="language-plaintext highlighter-rouge">data</code> 处理成 <code class="language-plaintext highlighter-rouge">image</code> 后图片还是要进行缓存防止二次处理</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+</pre><td class="rouge-code"><pre><span class="k">if</span> <span class="k">let</span> <span class="nv">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">,</span> <span class="n">image</span> <span class="o">==</span> <span class="kc">nil</span> <span class="p">{</span>
+    <span class="n">image</span> <span class="o">=</span> <span class="n">processor</span><span class="o">.</span><span class="nf">process</span><span class="p">(</span><span class="nv">item</span><span class="p">:</span> <span class="o">.</span><span class="nf">data</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="nv">options</span><span class="p">:</span> <span class="n">options</span><span class="p">)</span>
+    <span class="c1">// Add the processed image to cache. </span>
+    <span class="c1">// If `image` is nil, nothing will happen (since the key is not existing before).</span>
+    <span class="n">imageCache</span><span class="p">[</span><span class="n">processor</span><span class="o">.</span><span class="n">identifier</span><span class="p">]</span> <span class="o">=</span> <span class="n">image</span>
+<span class="p">}</span>
+</pre></table></code></div></div><p>最后如果图片没有问题就可以走代理方法传回去在主线程进行设置了就可以了</p><div class="language-swift highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+</pre><td class="rouge-code"><pre><span class="k">if</span> <span class="k">let</span> <span class="nv">image</span> <span class="o">=</span> <span class="n">image</span> <span class="p">{</span>
+    <span class="n">downloader</span><span class="o">.</span><span class="n">delegate</span><span class="p">?</span><span class="o">.</span><span class="nf">imageDownloader</span><span class="p">(</span><span class="n">downloader</span><span class="p">,</span> <span class="nv">didDownload</span><span class="p">:</span> <span class="n">image</span><span class="p">,</span> <span class="nv">for</span><span class="p">:</span> <span class="n">url</span><span class="p">,</span> <span class="nv">with</span><span class="p">:</span> <span class="n">task</span><span class="o">.</span><span class="n">response</span><span class="p">)</span>
+
+    <span class="k">let</span> <span class="nv">imageModifier</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">imageModifier</span>
+    <span class="k">let</span> <span class="nv">finalImage</span> <span class="o">=</span> <span class="n">imageModifier</span><span class="o">.</span><span class="nf">modify</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">backgroundDecode</span> <span class="p">{</span>
+        <span class="k">let</span> <span class="nv">decodedImage</span> <span class="o">=</span> <span class="n">finalImage</span><span class="o">.</span><span class="n">kf</span><span class="o">.</span><span class="n">decoded</span>
+        <span class="n">callbackQueue</span><span class="o">.</span><span class="n">safeAsync</span> <span class="p">{</span> <span class="nf">completionHandler</span><span class="p">?(</span><span class="n">decodedImage</span><span class="p">,</span> <span class="kc">nil</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span> <span class="p">}</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+        <span class="n">callbackQueue</span><span class="o">.</span><span class="n">safeAsync</span> <span class="p">{</span> <span class="nf">completionHandler</span><span class="p">?(</span><span class="n">finalImage</span><span class="p">,</span> <span class="kc">nil</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span> <span class="p">}</span>
+    <span class="p">}</span>       
+<span class="p">}</span> 
+</pre></table></code></div></div><p>至此，<a href="https://github.com/onevcat/Kingfisher">Kingfisher</a> 的主要流程方法就基本介绍完了。</p><h2 id="总结">总结</h2><p><a href="https://github.com/onevcat/Kingfisher">Kingfisher</a> 的加载过程其实跟 <code class="language-plaintext highlighter-rouge">SDWebImage</code> 是一样的，在默认设置下：</p><ul><li>查看缓存<ul><li>有图<ul><li>返回图片并更新</ul><li>无图<ul><li>异步下载<li>缓存图片<li>返回图片并更新</ul></ul></ul><p>第一次写源码分析也是第一次写技术博客， <code class="language-plaintext highlighter-rouge">Kingfisher</code> 还有很多技术细节没有一一展开（<del>其实因为我太菜看不懂</del>）。</p><p>在分析源码的过程中，真的体会到了很多基础知识的不足，如果你发现了有哪里我理解的不对，欢迎指教。</p><p>这篇分析从 Markdown 格式上借鉴了灯塔大神的格式，这里附上灯塔博客地址 <a href="https://github.com/Draveness">@Draveness</a></p><p>最后感谢 Zoe 女士，她应该是本文第一位读者。</p></div><div class="post-tail-wrapper text-muted"><div class="post-meta mb-3"> <i class="far fa-folder-open fa-fw mr-1"></i> <a href='/categories/ios/'>iOS</a></div><div class="post-tags"> <i class="fa fa-tags fa-fw mr-1"></i> <a href="/tags/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" class="post-tag no-text-decoration" >源码分析</a></div><div class="post-tail-bottom d-flex justify-content-between align-items-center mt-3 pt-5 pb-2"><div class="license-wrapper"> 该博客文章由作者通过 <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> 进行授权。</div><div class="share-wrapper"> <span class="share-label text-muted mr-1">分享</span> <span class="share-icons"> <a href="https://twitter.com/intent/tweet?text=Kingfisher 源码分析 - 李昊舒的博客&url=https://lutianaicai.github.io/posts/Kingfisher%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" data-toggle="tooltip" data-placement="top" title="Twitter" target="_blank" rel="noopener" aria-label="Twitter"> <i class="fa-fw fab fa-twitter"></i> </a> <a href="https://www.facebook.com/sharer/sharer.php?title=Kingfisher 源码分析 - 李昊舒的博客&u=https://lutianaicai.github.io/posts/Kingfisher%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" data-toggle="tooltip" data-placement="top" title="Facebook" target="_blank" rel="noopener" aria-label="Facebook"> <i class="fa-fw fab fa-facebook-square"></i> </a> <a href="https://telegram.me/share?text=Kingfisher 源码分析 - 李昊舒的博客&url=https://lutianaicai.github.io/posts/Kingfisher%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" data-toggle="tooltip" data-placement="top" title="Telegram" target="_blank" rel="noopener" aria-label="Telegram"> <i class="fa-fw fab fa-telegram"></i> </a> <a href="http://service.weibo.com/share/share.php?title=Kingfisher 源码分析 - 李昊舒的博客&url=https://lutianaicai.github.io/posts/Kingfisher%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" data-toggle="tooltip" data-placement="top" title="Weibo" target="_blank" rel="noopener" aria-label="Weibo"> <i class="fa-fw fab fa-weibo"></i> </a> <i class="fa-fw fas fa-link small" onclick="copyLink()" data-toggle="tooltip" data-placement="top" title="Copy link"></i> </span></div></div></div></div></div><div id="panel-wrapper" class="col-xl-3 pl-2 text-muted topbar-down"><div class="access"><div id="access-lastmod" class="post"> <span>最近更新</span><ul class="post-content pl-0 pb-1 ml-1 mt-2"><li><a href="/posts/%E7%A8%8B%E5%BA%8F%E5%91%98%E7%9A%84%E8%87%AA%E6%88%91%E4%BF%AE%E5%85%BB-%E9%93%BE%E6%8E%A5-%E8%A3%85%E8%BD%BD%E4%B8%8E%E5%BA%93%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0-%E5%9B%9B/">程序员的自我修养 ——链接、装载与库读书笔记（四）</a><li><a href="/posts/%E7%A8%8B%E5%BA%8F%E5%91%98%E7%9A%84%E8%87%AA%E6%88%91%E4%BF%AE%E5%85%BB-%E9%93%BE%E6%8E%A5-%E8%A3%85%E8%BD%BD%E4%B8%8E%E5%BA%93%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0-%E4%B8%80/">程序员的自我修养 ——链接、装载与库读书笔记（一）</a><li><a href="/posts/%E7%A8%8B%E5%BA%8F%E5%91%98%E7%9A%84%E8%87%AA%E6%88%91%E4%BF%AE%E5%85%BB-%E9%93%BE%E6%8E%A5-%E8%A3%85%E8%BD%BD%E4%B8%8E%E5%BA%93%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0-%E4%BA%8C/">程序员的自我修养 ——链接、装载与库读书笔记（二）</a><li><a href="/posts/%E7%A8%8B%E5%BA%8F%E5%91%98%E7%9A%84%E8%87%AA%E6%88%91%E4%BF%AE%E5%85%BB-%E9%93%BE%E6%8E%A5-%E8%A3%85%E8%BD%BD%E4%B8%8E%E5%BA%93%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0-%E4%B8%89/">程序员的自我修养 ——链接、装载与库读书笔记（三）</a><li><a href="/posts/Kingfisher%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/">Kingfisher 源码分析</a></ul></div><div id="access-tags"> <span>热门标签</span><div class="d-flex flex-wrap mt-3 mb-1 mr-3"> <a class="post-tag" href="/tags/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/">源码分析</a> <a class="post-tag" href="/tags/%E9%9D%99%E6%80%81%E9%93%BE%E6%8E%A5/">静态链接</a> <a class="post-tag" href="/tags/nginx/">nginx</a> <a class="post-tag" href="/tags/travis/">Travis</a> <a class="post-tag" href="/tags/%E5%8A%A8%E6%80%81%E9%93%BE%E6%8E%A5/">动态链接</a> <a class="post-tag" href="/tags/%E5%8D%9A%E5%AE%A2%E8%BF%81%E7%A7%BB/">博客迁移</a> <a class="post-tag" href="/tags/%E5%9F%BA%E7%A1%80/">基础</a> <a class="post-tag" href="/tags/%E5%B9%B4%E7%BB%88%E6%80%BB%E7%BB%93/">年终总结</a> <a class="post-tag" href="/tags/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/">操作系统</a> <a class="post-tag" href="/tags/%E6%9C%8D%E5%8A%A1%E5%99%A8/">服务器</a></div></div></div><div id="toc-wrapper" class="pl-0 pr-4 mb-5"> <span class="pl-3 pt-2 mb-2">文章目录</span><nav id="toc" data-toggle="toc"></nav></div></div></div><div class="row"><div class="col-12 col-lg-11 col-xl-8"><div id="post-extend-wrapper" class="pl-1 pr-1 pl-sm-2 pr-sm-2 pl-md-4 pr-md-4"><div id="related-posts" class="mt-5 mb-2 mb-sm-4"><h3 class="pt-2 mt-1 mb-4 ml-1" data-toc-skip>接下来阅读</h3><div class="card-deck mb-4"><div class="card"> <a href="/posts/SVProgressHUD%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"><div class="card-body"> <span class="timeago small" > 2018-11-06 <i class="unloaded">2018-11-06T00:00:00+08:00</i> </span><h3 class="pt-0 mt-1 mb-3" data-toc-skip>SVProgressHUD 源码分析</h3><div class="text-muted small"><p> 众所周知 SVProgressHUD 是一个简洁易用的 HUD 库，我想探寻简洁易用背后的原理。 Singleton SVProgressHUD 同 MBProgressHUD 一样，都是 UIView 的子类，不同与 MB , SV 提供的是单例，这也是它简洁的一大因素。 1 2 3 4 5 6 7 8 9 10 11 + (SVProgressHUD*)sharedView { ...</p></div></div></a></div><div class="card"> <a href="/posts/PromiseKit%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"><div class="card-body"> <span class="timeago small" > 2019-03-31 <i class="unloaded">2019-03-31T00:00:00+08:00</i> </span><h3 class="pt-0 mt-1 mb-3" data-toc-skip>PromiseKit 源码分析</h3><div class="text-muted small"><p> 面对回调地狱 PromiseKit 提供了一种简洁易用的异步编程模式。让你可以编写出更加易读，更加专注结果的代码。本文意在探寻简介背后的逻辑。 从最小类型谈去 搞清复杂封装的源码中最基本的类型就好比搞清一篇英文文章中所有看不懂的生词的意思。再想看懂文章，只需要把已知信息串联起来就行了。 Box box 是 PromiseKit 中基本的类，在介绍它之前，先得说一下同样定义在Box.swi...</p></div></div></a></div><div class="card"> <a href="/posts/%E7%A8%8B%E5%BA%8F%E5%91%98%E7%9A%84%E8%87%AA%E6%88%91%E4%BF%AE%E5%85%BB-%E9%93%BE%E6%8E%A5-%E8%A3%85%E8%BD%BD%E4%B8%8E%E5%BA%93%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0-%E5%9B%9B/"><div class="card-body"> <span class="timeago small" > 04-15 <i class="unloaded">2021-04-15T16:26:00+08:00</i> </span><h3 class="pt-0 mt-1 mb-3" data-toc-skip>程序员的自我修养 ——链接、装载与库读书笔记（四）</h3><div class="text-muted small"><p> 此系列为我学习经典的读书笔记，目的是理清知识脉络帮助理解记忆，内容深度、质量远远不及原书。如果您对相关知识感兴趣，强烈建议阅读原书程序员的自我修养 带着问题学习 为什么要动态链接 动态链接的关键结构有哪些 动态链接有哪些步骤 为什么要动态链接 静态链接使得不同开发者或部门之间能够按模块开发，这大大提高了生产效率，与此同时静态链接的两个缺点也显现出来。一个是占用...</p></div></div></a></div></div></div><div class="post-navigation d-flex justify-content-between"> <span class="btn btn-outline-primary disabled"><p>-</p></span> <a href="/posts/SVProgressHUD%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" class="btn btn-outline-primary"><p>SVProgressHUD 源码分析</p></a></div><div class="utterances-container"> <script src="https://utteranc.es/client.js" repo="lutianaicai/lutianaicai.github.io" issue-term="pathname" theme="photon-dark" crossorigin="anonymous" async> </script></div><script type="text/javascript"> $(function() { window.onmessage = evt => { if (evt.origin === 'https://utteranc.es') { toggle.updateCommentStyle(); window.onmessage = null; } } }); </script></div></div></div><footer class="d-flex w-100 justify-content-center"><div class="d-flex justify-content-between align-items-center"><div class="footer-left"><p class="mb-0"> © 2021 <a href="https://twitter.com/magiclhs">李昊舒</a>. <span data-toggle="tooltip" data-placement="top" title="除非另有说明，否则本网站上的博客文章均由作者根据知识共享许可协议 - 署名标示 4.0（CC BY 4.0）进行授权许可。">保留部分权利。</span> <a href="https://beian.miit.gov.cn/" target="_blank">冀 ICP 备 2021001127 号-1</a></p></div><div class="footer-right"><p class="mb-0"> 本博客由 <a href="https://jekyllrb.com" target="_blank" rel="noopener">Jekyll</a> 生成，使用 <a href="https://github.com/cotes2020/jekyll-theme-chirpy/" target="_blank" rel="noopener">Chirpy</a> 作为主题</p></div></div></footer></div><div id="search-result-wrapper" class="d-flex justify-content-center unloaded"><div class="col-12 col-xl-11 post-content"><div id="search-hints"><h4 class="text-muted mb-4">热门标签</h4><a class="post-tag" href="/tags/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/">源码分析</a> <a class="post-tag" href="/tags/%E9%9D%99%E6%80%81%E9%93%BE%E6%8E%A5/">静态链接</a> <a class="post-tag" href="/tags/nginx/">nginx</a> <a class="post-tag" href="/tags/travis/">Travis</a> <a class="post-tag" href="/tags/%E5%8A%A8%E6%80%81%E9%93%BE%E6%8E%A5/">动态链接</a> <a class="post-tag" href="/tags/%E5%8D%9A%E5%AE%A2%E8%BF%81%E7%A7%BB/">博客迁移</a> <a class="post-tag" href="/tags/%E5%9F%BA%E7%A1%80/">基础</a> <a class="post-tag" href="/tags/%E5%B9%B4%E7%BB%88%E6%80%BB%E7%BB%93/">年终总结</a> <a class="post-tag" href="/tags/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/">操作系统</a> <a class="post-tag" href="/tags/%E6%9C%8D%E5%8A%A1%E5%99%A8/">服务器</a></div><div id="search-results" class="d-flex flex-wrap justify-content-center text-muted mt-3"></div></div></div></div><div id="mask"></div><a id="back-to-top" href="#" aria-label="back-to-top" class="btn btn-lg btn-box-shadow" role="button"> <i class="fas fa-angle-up"></i> </a> <script src="https://cdn.jsdelivr.net/npm/simple-jekyll-search@1.7.3/dest/simple-jekyll-search.min.js"></script> <script> SimpleJekyllSearch({ searchInput: document.getElementById('search-input'), resultsContainer: document.getElementById('search-results'), json: '/assets/js/data/search.json', searchResultTemplate: '<div class="pl-1 pr-1 pl-sm-2 pr-sm-2 pl-lg-4 pr-lg-4 pl-xl-0 pr-xl-0"> <a href="https://lutianaicai.github.io{url}">{title}</a><div class="post-meta d-flex flex-column flex-sm-row text-muted mt-1 mb-1"><div class="mr-sm-4"><i class="far fa-folder fa-fw"></i>{categories}</div><div><i class="fa fa-tag fa-fw"></i>{tags}</div></div><p>{snippet}</p></div>', noResultsText: '<p class="mt-5">Oops! No result founds.</p>' }); </script>
